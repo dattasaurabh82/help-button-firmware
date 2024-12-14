@@ -234,8 +234,8 @@ void configureAdvertising(bool isSetup) {
     Serial.println("\nBroadcast Payload:");
     Serial.printf("Manufacturer ID: 0x%04X\n", MANUFACTURER_ID);
     Serial.printf("Product Type: 0x%02X\n", PRODUCT_TYPE);
-    Serial.printf("Rolling Code: 0x%08X\n", code);
-    Serial.printf("Wake Count: %d\n", wakeCount);
+    Serial.printf("Rolling Code: 0x%08lu\n", code);
+    Serial.printf("Wake Count: %lu\n", wakeCount);
   }
 
   String manufacturerData;
