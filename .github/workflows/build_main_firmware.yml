@@ -5,9 +5,14 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Validate tag format
         run: |
@@ -19,10 +24,11 @@ jobs:
   release:
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: write    # Add this
     defaults:
       run:
         working-directory: main/arduino/button_firmware
-
     steps:
       ###################
       # Configure Environment
