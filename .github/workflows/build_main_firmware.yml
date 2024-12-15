@@ -110,7 +110,7 @@ jobs:
             echo "- Commit: ${{ github.sha }}"
             echo "- Builder: ${{ github.actor }}"
             echo ""
-            echo "### Files"
+            echo "### All compiled firmware binary and other files"
             echo "- firmware.zip contains:"
             cd binary
             for file in *.*; do
@@ -120,6 +120,8 @@ jobs:
               fi
             done
             cd ..
+            ehco "### Main firmware binary"
+            echo "- button_firmware.merged.bin"
             echo ""
           } > release_notes.md
           pwd
