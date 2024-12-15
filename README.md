@@ -3,9 +3,6 @@
 | Type | Status |
 |------|---------|
 | Build status | [![Firmware Build](https://github.com/dattasaurabh82/help-button-firmware/actions/workflows/build_main_firmware.yml/badge.svg)](https://github.com/dattasaurabh82/help-button-firmware/actions/workflows/build_main_firmware.yml) |
-<!-- | Release | ![GitHub release (latest by date)](https://img.shields.io/github/v/release/dattasaurabh82/help-button-firmware?label=release) |
-| Pre-release | ![GitHub pre-release](https://img.shields.io/github/v/release/dattasaurabh82/help-button-firmware?include_prereleases&label=pre-release) | -->
-
 
 ## Installation instructions
 
