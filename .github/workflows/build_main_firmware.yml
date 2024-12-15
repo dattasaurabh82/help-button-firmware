@@ -121,3 +121,13 @@ jobs:
           pwd
           ls -la
           cat release_notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: main/arduino/button_firmware/firmware.zip
+          body_path: main/arduino/button_firmware/release_notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
