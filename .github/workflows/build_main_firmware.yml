@@ -3,12 +3,22 @@ name: Build and Release Firmware
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
-  release:
+  validate:
     runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        run: |
+          if [[ ! ${{ github.ref_name }} =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Invalid tag format. Use: v1.2.3 or v1.2.3-beta"
+            exit 1
+          fi
 
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: main/arduino/button_firmware
@@ -20,17 +30,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Verify repository content
+        run: |
+          if [ ! -f "button_firmware.ino" ]; then
+            echo "ERROR: button_firmware.ino not found!"
+            exit 1
+          fi
+
       - name: Install Arduino CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
           arduino-cli config init
           arduino-cli core update-index
+        continue-on-error: false
 
       - name: Install ESP32 core
+        id: install-esp32
         run: |
           arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
+        continue-on-error: false
 
       ###################
       # Build Firmware
@@ -39,19 +59,39 @@ jobs:
         run: |
           rm -rf binary
           mkdir -p binary
+          echo "Build started at: $(date)" > binary/build_info.txt
+          echo "Git commit: ${{ github.sha }}" >> binary/build_info.txt
+          echo "Version: ${{ github.ref_name }}" >> binary/build_info.txt
 
       - name: Compile firmware
+        id: compile
         run: |
+          set -o pipefail
           arduino-cli compile -v \
             --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=default,FlashFreq=64,FlashMode=qio,FlashSize=4M,PartitionScheme=default,DebugLevel=none,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default \
             --output-dir binary \
-            button_firmware.ino
+            button_firmware.ino 2>&1 | tee binary/build_log.txt
+        continue-on-error: false
+
+      - name: Verify binary files
+        run: |
+          cd binary
+          required_files=("button_firmware.ino.bin" "button_firmware.ino.merged.bin")
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Required file $file not found!"
+              exit 1
+            fi
+          done
 
       - name: Rename binary files
         run: |
           cd binary
           for f in *.ino.*; do 
-            mv "$f" "${f/.ino./\.}"
+            if [ -f "$f" ]; then
+              mv "$f" "${f/.ino./\.}"
+              echo "Renamed: $f → ${f/.ino./\.}"
+            fi
           done
           cd ..
 
@@ -61,15 +101,75 @@ jobs:
       - name: Create firmware ZIP
         run: |
           cd binary
-          zip -r ../../../firmware.zip *
+          zip -r ../../../firmware.zip * -x build_log.txt
           cd ..
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          {
+            echo "## ESP32-H2 Firmware Release ${{ github.ref_name }}"
+            echo "### Build Information"
+            echo "- Build Date: $(date)"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Builder: ${{ github.actor }}"
+            echo ""
+            echo "### Files"
+            echo "- firmware.zip contains:"
+            cd binary
+            for file in *.*; do
+              if [ "$file" != "build_log.txt" ]; then
+                echo "  - $file ($(stat -f%z "$file") bytes)"
+              fi
+            done
+            echo ""
+            echo "### Installation"
+            echo "1. Download firmware.zip"
+            echo "2. Use ESP Web Tools to flash"
+            echo "3. Follow setup instructions in README"
+          } > ../../../release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: main/arduino/firmware.zip
-          generate_release_notes: true
+          files: |
+            main/arduino/firmware.zip
+          body_path: main/arduino/release_notes.md
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      ###################
+      # Notifications
+      ###################
+      - name: Notify on Success
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ Firmware build successful! Release created: ${{ github.ref_name }}'
+            })
+
+      - name: Notify on Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '❌ Firmware build failed! Check Actions tab for details.'
+            })
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-logs
+          path: main/arduino/button_firmware/binary/build_log.txt
