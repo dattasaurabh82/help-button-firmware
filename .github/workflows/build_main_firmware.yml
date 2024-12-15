@@ -89,7 +89,8 @@ jobs:
               echo "Renamed: $f → ${f/.ino./\.}"
             fi
           done
-          cp button_firmware.merged.bin "button_firmware.merged-${VERSION}.bin"
+          cp button_firmware.merged.bin "button_firmware.merged-${GITHUB_REF_NAME}.bin"
+          echo "Renamed and created a copy of the binary with version: button_firmware.merged-${GITHUB_REF_NAME}.bin"
           ls -la
           cd ..
 
