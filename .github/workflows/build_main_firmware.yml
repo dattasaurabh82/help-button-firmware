@@ -94,3 +94,28 @@ jobs:
           zip -r firmware.zip binary/*
           ls -la
           pwd
+        #   cd ../../..
+        #   ls -la
+
+      - name: Generate Release Notes
+        run: |
+          {
+            echo "## ESP32-H2 Firmware Release ${{ github.ref_name }}"
+            echo "### Build Information"
+            echo "- Build Date: $(date)"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Builder: ${{ github.actor }}"
+            echo ""
+            echo "### Files"
+            echo "- firmware.zip contains:"
+            cd binary
+            for file in *.*; do
+              if [ "$file" != "build_log.txt" ]; then
+                size=$(ls -l "$file" | awk '{print $5}')
+                echo "  - $file ($size bytes)"
+              fi
+            done
+            cd ..
+            echo ""
+          } > release_notes.md
+          cat release_notes.md
