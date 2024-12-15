@@ -1,11 +1,12 @@
-name: Build and release main firmware
+name: Build and Release Firmware
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     defaults:
@@ -13,18 +14,11 @@ jobs:
         working-directory: main/arduino/button_firmware
 
     steps:
+      ###################
+      # Configure Environment
+      ###################
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Cache Arduino CLI
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.arduino15
-            ~/Arduino
-          key: ${{ runner.os }}-arduino-${{ hashFiles('main/arduino/button_firmware/*.ino') }}
-          restore-keys: |
-            ${{ runner.os }}-arduino-
 
       - name: Install Arduino CLI
         run: |
@@ -38,6 +32,9 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
+      ###################
+      # Build Firmware
+      ###################
       - name: Clean and create binary directory
         run: |
           rm -rf binary
@@ -50,15 +47,29 @@ jobs:
             --output-dir binary \
             button_firmware.ino
 
+      - name: Rename binary files
+        run: |
+          cd binary
+          for f in *.ino.*; do 
+            mv "$f" "${f/.ino./\.}"
+          done
+          cd ..
+
+      ###################
+      # Upload Release
+      ###################
       - name: Create firmware ZIP
         run: |
           cd binary
           zip -r ../../../firmware.zip *
           cd ..
 
-      - name: Upload firmware to release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: main/arduino/firmware.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
