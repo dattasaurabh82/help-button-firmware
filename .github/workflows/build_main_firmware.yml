@@ -118,4 +118,6 @@ jobs:
             cd ..
             echo ""
           } > release_notes.md
+          pwd
+          ls -la
           cat release_notes.md
