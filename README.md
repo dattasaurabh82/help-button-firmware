@@ -20,17 +20,20 @@ TBD
 
 ## Firmware installation instructions
 
-### 1. From the web (Just want to flash the firmware - Recommended and most straight forward)
+<details>
+<summary>1. From the web (Just want to flash the firmware - Recommended and most straight forward)</summary>
 
 TBD
+</details>
 
-### 2. arduino-cli (Just want to flash the firmware - But from your local machine)
+<details>
+<summary>2. arduino-cli (Just want to flash the firmware - But from your local machine)</summary>
 
-#### 2.1. Install Arduino CLI
+### 2.1. Install Arduino CLI
 
 Follow the [Instructions from here](https://arduino.github.io/arduino-cli/1.1/installation/) for your platform (Pick the latest version from the top left drop down).
 
-#### 2.2. Install ESP32 boards
+### 2.2. Install ESP32 boards
 
 ```bash
 # Add the ESP32 boards URL
@@ -43,24 +46,24 @@ arduino-cli core update-index
 arduino-cli core install esp32:esp32
 ```
 
-#### 2.3. Building and uploading the firmware
+### 2.3. Building and uploading the firmware
 
-2.3.1. Clone this repository to your local machine.
+#### 2.3.1. Clone this repository to your local machine.
 
-2.3.2. Navigate to the [main/arduino/button_firmware](main/arduino/button_firmware) directory.
+#### 2.3.2. Navigate to the [main/arduino/button_firmware](main/arduino/button_firmware) directory.
 
 ```bash
 cd main/arduino/button_firmware
 ```
 
-2.3.3. Clean and create a new binary directory
+#### 2.3.3. Clean and create a new binary directory
 
 ```bash
 rm -rf binary
 mkdir -p binary
 ```
 
-2.3.4. Compile the firmware
+#### 2.3.4. Compile the firmware
 
 ```bash
 arduino-cli compile -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=default,FlashFreq=64,FlashMode=qio,FlashSize=4M,PartitionScheme=default,DebugLevel=none,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default --output-dir binary .
@@ -69,7 +72,7 @@ arduino-cli compile -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=d
 cd binary && ls -la
 ```
 
-2.3.5. Upload the firmware
+#### 2.3.5. Upload the firmware
 
 ```bash
 # Assuming you are in main/arduino/button_firmware 
@@ -83,23 +86,26 @@ arduino-cli upload -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=de
 >
 > You can find the port name by running the `arduino-cli board list` command.
 
-2.3.6. Verify the firmware
+#### 2.3.6. Verify the firmware
 
 TBD
+</details>
 
-### 3. Arduino IDE 2.3.4 (Easy for Development and want to look under the hood)
 
-#### Prerequisites
+<details>
+<summary>3. Arduino IDE 2.3.4 (Easy for Development and want to look under the hood)</summary>
+
+#### 3.1. Prerequisites
 
 1. Install the latest Arduino IDE (version 2.3.4 or above) for your platform.
 2. Open the Arduino IDE and navigate to the Board Manager.
 3. Search for "esp32" and install the "esp32 by Espressif" (latest).
 
-#### Compile & upload
+#### 3.2. Compile & upload
 
-1. Clone this repository to your local machine.
-2. Open the [button_firmware.ino](main/arduino/button_firmware/button_firmware.ino) file located in the [main/arduino/button_firmware](main) directory.
-3. In the Arduino IDE, select the following board parameters:
+3.2.1. Clone this repository to your local machine.
+3.2.2. Open the [button_firmware.ino](main/arduino/button_firmware/button_firmware.ino) file located in the [main/arduino/button_firmware](main) directory.
+3.2.3. In the Arduino IDE, select the following board parameters:
 
    ```txt
    Board: ESP32-H2-Dev Module
@@ -114,12 +120,16 @@ TBD
    Zigbee Mode: Disabled
    ```
 
-4. Select the appropriate USB Serial port for your device (in Win, make sure you ahve "xxx" drtiver installed and then select the right COM port; on mac and linux, you can ignore).
-5. Click the Upload button to flash the firmware. It will compile and upload
+3.2.4. Select the appropriate USB Serial port for your device (in Win, make sure you ahve "xxx" drtiver installed and then select the right COM port; on mac and linux, you can ignore).
+3.2.5. Click the Upload button to flash the firmware. It will compile and upload
+</details>
 
-### 4. Platform IO (If you are a pro and are keen in firmware development)
+<details>
+<summary>4. Platform IO (If you are a pro and are keen in firmware development)</summary>
 
 TBD
+
+</details>
 
 ## Main and test source code files
 
