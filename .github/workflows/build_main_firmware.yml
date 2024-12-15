@@ -89,6 +89,7 @@ jobs:
               echo "Renamed: $f → ${f/.ino./\.}"
             fi
           done
+          cp button_firmware.merged.bin "button_firmware.merged-${VERSION}.bin"
           ls -la
           cd ..
 
@@ -133,7 +134,7 @@ jobs:
         with:
           files: | 
             main/arduino/button_firmware/firmware.zip
-            main/arduino/button_firmware/binary/button_firmware.merged.bin 
+            main/arduino/button_firmware/binary/button_firmware.merged-${{ github.ref_name }}.bin 
           body_path: main/arduino/button_firmware/release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
