@@ -1,1 +1,64 @@
+name: Build and release main firmware
 
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: main/arduino/button_firmware
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache Arduino CLI
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino
+          key: ${{ runner.os }}-arduino-${{ hashFiles('main/arduino/button_firmware/*.ino') }}
+          restore-keys: |
+            ${{ runner.os }}-arduino-
+
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+          arduino-cli config init
+          arduino-cli core update-index
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Clean and create binary directory
+        run: |
+          rm -rf binary
+          mkdir -p binary
+
+      - name: Compile firmware
+        run: |
+          arduino-cli compile -v \
+            --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=default,FlashFreq=64,FlashMode=qio,FlashSize=4M,PartitionScheme=default,DebugLevel=none,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default \
+            --output-dir binary \
+            button_firmware.ino
+
+      - name: Create firmware ZIP
+        run: |
+          cd binary
+          zip -r ../../../firmware.zip *
+          cd ..
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: main/arduino/firmware.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
