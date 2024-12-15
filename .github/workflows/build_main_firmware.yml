@@ -120,7 +120,7 @@ jobs:
               fi
             done
             cd ..
-            ehco "### Main firmware binary"
+            echo "### Main firmware binary"
             echo "- button_firmware.merged.bin"
             echo ""
           } > release_notes.md
