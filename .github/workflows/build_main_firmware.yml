@@ -73,7 +73,6 @@ jobs:
           done
           ls -la
           cd ..
-          ls -la
 
       - name: Rename binary files
         run: |
@@ -86,4 +85,12 @@ jobs:
           done
           ls -la
           cd ..
+
+      ###################
+      # Create Release
+      ###################
+      - name: Create firmware ZIP
+        run: | 
+          zip -r firmware.zip binary/*
           ls -la
+          pwd
