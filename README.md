@@ -23,7 +23,40 @@ TBD
 <details>
 <summary>1. From the web (Just want to flash the firmware - Recommended and most straight forward)</summary>
 
-TBD
+1. Download the latest firmware binary file, to a suitable location on your computer by going to: [help-button-firmware](https://github.com/dattasaurabh82/help-button-firmware/releases/) repository. Then under `Releases`, pick a latest release and look for a file `button_firmware.merged-v[some latest version].bin`.
+2. Visit [espressif.github.io/esptool-js](https://espressif.github.io/esptool-js/#)
+3. Check under `Program->Baudrate` is set to `921600`. If not change it to `921600`.
+4. `Console->Baudrate` Should be `115200`. If not change it to `115200`.
+5. Then Click `Connect` (Under `Program`).
+6. Select the correct COM port.
+![alt text](assets/select_com_port.png)
+On macOS, for example, it should appear something like this.
+
+> Note: If you are Windows, you may need proper serial port drivers.
+
+7. The chip should be now detected should appear as `ESP32-H2` and few other buttons should appear under `Program` Tab.
+![alt text](assets/device_recognized.png)
+
+8. Click `Erase Flash`. Watch the log and wait for it to finish.
+![alt text](assets/erase_flash.png)
+
+9. Now change the value of `Flash Address` from `0x1000` to `0x0000`.
+![alt text](assets/set_correct_flash_addr.png)
+10. Click `Choose File` to load the binary file you just downloaded.
+11. Then click the blue `Program` button. Watch the logs till it's done.
+![alt text](assets/upload_process.gif)
+
+> Wait till you see, in logs, the following:
+
+```bash
+Writing at 0x33f63f... (100%)
+Wrote 4194304 bytes (688901 compressed) at 0x0 in 22.586 seconds.
+Hash of data verified.
+Leaving...
+```
+
+12. Click `Disconnect` and then Unplug the device.
+
 </details>
 
 <details>
