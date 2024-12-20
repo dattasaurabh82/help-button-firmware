@@ -31,13 +31,21 @@ jobs:
       
       - name: Prepare deployment files
         run: |
-          # Create firmware directory in webflasher
           ls -la
+          # Delete old firmware directory in webflasher
+          rm -rf webflasher/firmware
+          ls -la
+          # Create firmware directory in webflasher
           mkdir -p webflasher/firmware
+          ls -la
           # Copy the latest binary file
           cp main/arduino/button_firmware/binary/button_firmware.merged.bin webflasher/firmware/
           # Verify the file exists
           ls -la webflasher/firmware/
+      
+      - name: Update version in manifest.json to the correct version
+        run: |
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${GITHUB_REF_NAME}\"/" webflasher/manifest.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
