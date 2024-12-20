@@ -35,8 +35,6 @@ jobs:
       ###################
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history
 
       - name: Install Arduino CLI
         run: |
@@ -81,27 +79,6 @@ jobs:
           done
           ls -la
           cd ..
-      
-      - name: Commit and push binary files in the repository too
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-          # Fetch all branches
-          git fetch origin
-          # Checkout main branch (or whatever your default branch is)
-          git checkout main
-          if git diff --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi  
-          git add binary/*
-          git commit -m "Add compiled firmware binaries for version ${GITHUB_REF_NAME}"
-          # Delete the tag first (both locally and remotely)
-          git push origin :refs/tags/${GITHUB_REF_NAME}
-          git tag -d ${GITHUB_REF_NAME}
-          # Create and push the tag again
-          git tag ${GITHUB_REF_NAME}
-          git push origin ${GITHUB_REF_NAME}
 
       - name: Rename binary files
         run: |
