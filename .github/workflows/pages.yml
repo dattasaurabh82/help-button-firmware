@@ -2,6 +2,12 @@ name: Deploy webflasher to GitHub Pages
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and Release Firmware"]  # Name of the release creation workflow
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -16,6 +22,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
