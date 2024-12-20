@@ -107,4 +107,73 @@ arduino-cli upload -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=de
 >
 > Replace `/dev/your-serial-port` with the actual serial port name on your system (e.g., `/dev/ttyUSB0` on Linux, `COM3` on Windows).
 >
-> You can find the port na
+> You can find the port name by running the `arduino-cli board list` command.
+
+#### 2.3.6. Verify the firmware
+
+TBD
+</details>
+
+
+<details>
+<summary>3. Arduino IDE 2.3.4 (Easy for Development and want to look under the hood)</summary>
+
+#### 3.1. Prerequisites
+
+1. Install the latest Arduino IDE (version 2.3.4 or above) for your platform.
+2. Open the Arduino IDE and navigate to the Board Manager.
+3. Search for "esp32" and install the "esp32 by Espressif" (latest).
+
+#### 3.2. Compile & upload
+
+3.2.1. Clone this repository to your local machine.
+3.2.2. Open the [button_firmware.ino](main/arduino/button_firmware/button_firmware.ino) file located in the [main/arduino/button_firmware](main) directory.
+3.2.3. In the Arduino IDE, select the following board parameters:
+
+   ```txt
+   Board: ESP32-H2-Dev Module
+   Upload Speed: 921600
+   CDC On Boot: Disabled
+   Flash Frequency: 64MHz
+   Flash Mode: QIO
+   Flash Size: 4MB (32Mb)
+   Partition Scheme: Default 4MB (1.2MB APP/1.5MB SPIFFS)
+   Erase Flash: Disabled
+   JTAG Adapter: Disabled
+   Zigbee Mode: Disabled
+   ```
+
+3.2.4. Select the appropriate USB Serial port for your device (in Win, make sure you ahve "xxx" drtiver installed and then select the right COM port; on mac and linux, you can ignore).
+3.2.5. Click the Upload button to flash the firmware. It will compile and upload
+</details>
+
+<details>
+<summary>4. Platform IO (If you are a pro and are keen in firmware development)</summary>
+
+TBD
+
+</details>
+
+## Main and test source code files
+
+TBD
+
+## Auto-compilation pipeline
+
+TBD
+
+## Firmware flashing instructions
+
+TBD
+
+## License
+
+[GPL-3.0](LICENSE)
+
+## Attribution
+
+```txt
+Saurabh Datta
+Dec 2024
+Berlin, Germany
+```
