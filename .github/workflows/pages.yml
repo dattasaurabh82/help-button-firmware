@@ -68,10 +68,14 @@ jobs:
           ls -la webflasher/firmware/
           echo ""
       
-      - name: Update version in manifest.json to the last bin release version
+      - name: Update version in manifest.json and the index.html to the last binary release version
         run: |
+          # Update manifest.json
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ env.VERSION }}\"/" webflasher/manifest.json
           cat webflasher/manifest.json
+          # Update index.html
+          sed -i "s/VERSION_PLACEHOLDER/${{ env.VERSION }}/" webflasher/index.html
+          cat webflasher/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
