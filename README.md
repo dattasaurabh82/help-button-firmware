@@ -52,7 +52,10 @@
 
 ## Automations and CI/CD pipelins
 
-1. An automation flow to  [build releases](.github/workflows/build_main_firmware.yml) from the sopurce code as binary files, is triggered by new unique tag pushes.
+<details>
+<summary> Details </summary>
+
+1. An automation flow to  [build releases](.github/workflows/build_main_firmware.yml) from the source code as binary files, is triggered by new unique tag pushes.
 
 > __This also commits and pushes the binaries to the repository itself in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)__
 
@@ -173,6 +176,8 @@ flowchart TD
     style Upload fill:#fc9,stroke:#333,stroke-width:2px
     style DeployPages fill:#fc9,stroke:#333,stroke-width:2px
 ```
+
+</details>
 
 ## Hardware Preparation
 
