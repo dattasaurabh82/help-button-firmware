@@ -50,7 +50,7 @@
 
    > __It uses [ESP Web Tools](https://esphome.github.io/esp-web-tools/)__. More about details about it and how to use it, will follow later.
 
-## Automations and CI/CD pipelins
+## Automations and CI/CD pipelines
 
 <details>
 <summary> Details </summary>
