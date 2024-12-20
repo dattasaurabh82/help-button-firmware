@@ -362,15 +362,7 @@ TBD
 
 </details>
 
-## Main and test source code files
-
-TBD
-
-## Auto-compilation pipeline
-
-TBD
-
-## Firmware flashing instructions
+## Main and test source code files (Pseudo code)
 
 TBD
 
