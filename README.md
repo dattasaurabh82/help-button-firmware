@@ -8,9 +8,10 @@
 
 ## Hardware Preparation
 
-### "Why ESP-32", you may ask
+<details>
+<summary>"Why ESP-32", you may ask</summary>
 
-We have chosen ESP32-H2-MINI-1 for its natural advantages:
+We have chosen [ESP32-H2-MINI-1](https://www.espressif.com/sites/default/files/documentation/esp32-h2-mini-1_mini-1u_datasheet_en.pdf) for its natural advantages:
 
 1. The ESP family is developer-friendly, with the ESP SDK being widely supported across various frameworks like Arduino and PIO, in addition to ESP-IDF itself. This makes long-term development maintenance much easier.
 2. This specific module has the lowest deep sleep power consumption in the entire ESP family (as of December 2024).
@@ -20,13 +21,25 @@ We have chosen ESP32-H2-MINI-1 for its natural advantages:
 6. It features built-in BLE and WiFi, plus support for future protocols like Thread, making it future-proof.
 7. It has all [necessary certifications](https://www.espressif.com/en/support/documents/certificates?keys=&field_product_value%5B%5D=ESP32-H2&field_product_value%5B%5D=ESP32-H2-MINI-1) for shipping radio-based consumer electronics.
 
-### Dev Module
+</details>
+
+<details>
+<summary>Development module/kit</summary>
+
+To test development and firmware, you can purchase [ESP32-H2-DevKitM-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32h2/esp32-h2-devkitm-1/user_guide.html)
+
+![alt text](<assets/dev module info.png>)
+
+![alt text](assets/esp32-h2-devkitm-1-v1.2_pinlayout.png)
+
+🛒 [Purchase link](https://amzn.eu/d/6zMkRbX)
+</details>
+
+<details>
+<summary>Real hardware module</summary>
 
 TBD
-
-### Real hardware Module
-
-TBD
+</details>
 
 ---
 
