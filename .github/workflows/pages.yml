@@ -1,13 +1,12 @@
 name: Deploy webflasher to GitHub Pages
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
     inputs:
       version:
-        description: 'Version to deploy (e.g. v0.0.2)'
-        required: true
+        description: 'Version to deploy (leave empty to use latest tag)'
+        required: false  # Make it optional
         type: string
-        default: 'v0.0.1'
 
 permissions:
   contents: read
@@ -19,6 +18,7 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+
 jobs:
   deploy:
     environment:
@@ -28,6 +28,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for tags
+      
+      - name: Get version to use
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            # If no version provided, get latest tag
+            LATEST_TAG=$(git describe --tags --abbrev=0)
+            echo "VERSION=${LATEST_TAG}" >> $GITHUB_ENV
+            echo "Using latest tag: ${LATEST_TAG}"
+          else
+            # Use provided version
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+            echo "Using provided version: ${{ inputs.version }}"
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -55,7 +70,7 @@ jobs:
       
       - name: Update version in manifest.json to the last bin release version
         run: |
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ inputs.version }}\"/" webflasher/manifest.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ env.VERSION }}\"/" webflasher/manifest.json
           cat webflasher/manifest.json
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
