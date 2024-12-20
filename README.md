@@ -8,6 +8,18 @@
 
 ## Hardware Preparation
 
+### "Why ESP-32", you may ask
+
+We have chosen ESP32-H2-MINI-1 for its natural advantages:
+
+1. The ESP family is developer-friendly, with the ESP SDK being widely supported across various frameworks like Arduino and PIO, in addition to ESP-IDF itself. This makes long-term development maintenance much easier.
+2. This specific module has the lowest deep sleep power consumption in the entire ESP family (as of December 2024).
+3. It is widely available and cost-effective.
+4. Firmware flashing is simpler compared to previous microcontrollers, requiring no development environment. For example, web flashing capabilities mean factories can easily flash devices during mass production without setting up specific development environments.
+5. It has a smaller footprint.
+6. It features built-in BLE and WiFi, plus support for future protocols like Thread, making it future-proof.
+7. It has all [necessary certifications](https://www.espressif.com/en/support/documents/certificates?keys=&field_product_value%5B%5D=ESP32-H2&field_product_value%5B%5D=ESP32-H2-MINI-1) for shipping radio-based consumer electronics.
+
 ### Dev Module
 
 TBD
