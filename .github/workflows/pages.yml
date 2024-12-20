@@ -1,10 +1,13 @@
 name: Deploy webflasher to GitHub Pages
 
 on:
-  workflow_dispatch:  # Manual trigger for now
-  # You could also add auto-trigger on releases later:
-  # release:
-  #   types: [published]
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      version:
+        description: 'Version to deploy (e.g. v0.0.2)'
+        required: true
+        type: string
+        default: 'v0.0.1'
 
 permissions:
   contents: read
@@ -50,12 +53,9 @@ jobs:
           ls -la webflasher/firmware/
           echo ""
       
-      - name: Set version variable
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-      
       - name: Update version in manifest.json to the last bin release version
         run: |
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ env.VERSION }}\"/" webflasher/manifest.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ inputs.version }}\"/" webflasher/manifest.json
           cat webflasher/manifest.json
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
