@@ -52,17 +52,127 @@
 
 ## Automations and CI/CD pipelins
 
-1. An [automation flow to build releases](.github/workflows/build_main_firmware.yml) from the sopurce code as binary files, is triggered by new unique tag pushes.
+1. An automation flow to  [build releases](.github/workflows/build_main_firmware.yml) from the sopurce code as binary files, is triggered by new unique tag pushes.
 
 > __This also commits and pushes the binaries to the repository itself in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)__
 
 ```bash
 git tag v0.0.x
 git push -u origin v0.0.x
+# Will create a new tag and a new release
 ```
 
-1. 
-2. 
+```mermaid
+flowchart TD
+    Start([Push Tag v*.*.* ]) --> ValidateJob[Validate Job]
+    
+    subgraph ValidateJob[Validate Tag Format]
+        V1[Check tag format]
+    end
+    
+    ValidateJob --> ReleaseJob[Release Job]
+    
+    subgraph ReleaseJob[Release Process]
+        subgraph Config[Configure Environment]
+            C1[Checkout code]
+            C2[Install Arduino CLI]
+            C3[Install ESP32 core]
+            C1 --> C2
+            C2 --> C3
+        end
+        
+        subgraph Build[Build Firmware]
+            B1[Clean/create binary dir]
+            B2[Compile firmware]
+            B3[Verify binary files]
+            B4[Rename binary files]
+            B1 --> B2
+            B2 --> B3
+            B3 --> B4
+        end
+        
+        subgraph Commit[Commit and Push]
+            CP1[Configure git]
+            CP2[Add binary files]
+            CP3[Commit changes]
+            CP4[Push to main]
+            CP5[Update tag]
+            CP1 --> CP2
+            CP2 --> CP3
+            CP3 --> CP4
+            CP4 --> CP5
+        end
+        
+        subgraph Release[Create Release]
+            R1[Create firmware ZIP]
+            R2[Generate Release Notes]
+            R3[Create GitHub Release]
+            R1 --> R2
+            R2 --> R3
+        end
+        
+        Config --> Build
+        Build --> Commit
+        Commit --> Release
+    end
+    
+    ReleaseJob --> End([Release Published])
+
+    style Start fill:#f96,stroke:#333,stroke-width:2px
+    style End fill:#9f9,stroke:#333,stroke-width:2px
+    style ValidateJob fill:#ccf,stroke:#333,stroke-width:2px
+    style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
+```
+
+2. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
+
+```mermaid
+flowchart TD
+    Start([Start]) --> Trigger{Trigger Type}
+    Trigger -->|Manual| Check[Check Conditions]
+    Trigger -->|After Build Workflow| Check
+    
+    subgraph Conditions[Condition Check]
+        Check{Manual or Success?}
+        Check -->|No| End([End])
+        Check -->|Yes| Deploy[Deploy Process]
+    end
+
+    subgraph Deploy[Deployment Process]
+        D1[Checkout Repository]
+        D2[Get Latest Tag Version]
+        D3[Setup GitHub Pages]
+        
+        subgraph Prepare[Prepare Files]
+            P1[Clean firmware directory]
+            P2[Create new firmware directory]
+            P3[Copy latest binary]
+            P1 --> P2
+            P2 --> P3
+        end
+        
+        subgraph Update[Update Files]
+            U1[Update manifest.json version]
+            U2[Update index.html version]
+            U1 --> U2
+        end
+        
+        D1 --> D2
+        D2 --> D3
+        D3 --> Prepare
+        Prepare --> Update
+    end
+    
+    Deploy --> Upload[Upload to Pages]
+    Upload --> DeployPages[Deploy to GitHub Pages]
+    DeployPages --> End
+
+    style Start fill:#f96,stroke:#333,stroke-width:2px
+    style End fill:#9f9,stroke:#333,stroke-width:2px
+    style Deploy fill:#ccf,stroke:#333,stroke-width:2px
+    style Upload fill:#fc9,stroke:#333,stroke-width:2px
+    style DeployPages fill:#fc9,stroke:#333,stroke-width:2px
+```
 
 ## Hardware Preparation
 
@@ -105,6 +215,41 @@ TBD
 
 <details>
 <summary>1. From the web (Just want to flash the firmware - Recommended and most straight forward)</summary>
+
+![alt text](<assets/Step 1.png>)
+
+1. Go to: https://dattasaurabh82.github.io/help-button-firmware/ and click "Connect". Of course, plug in your device first.
+
+![alt text](<assets/Step 2.png>)
+
+2. Select the correct serial port/COM port (in Windows)
+
+![alt text](<assets/Step 3.png>)
+
+3. Click "Install Button Firmware". The latest firmware is always there because of our automations (mentioned above).
+
+![alt text](<assets/Step 4.png>)
+
+4. Select "Erase device" to Erase teh flash and then click "Next".
+
+![alt text](<assets/Step 5.png>)
+
+5. Click "Install" to start firmware flashing.
+
+![alt text](<assets/Step 6.png>)
+
+6. Now wait and follow the prompts and watch the progress.
+
+![alt text](<assets/Step 7.png>)
+
+![alt text](<assets/Step 8.png>)
+
+![alt text](<assets/Step 9.png>)
+
+7. After completion, open the serial port, for now, to check.
+
+> If there are trouble, the UI will guide you on how to troubleshoot.
+
 </details>
 
 <details>
