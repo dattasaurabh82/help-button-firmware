@@ -65,6 +65,8 @@ git push -u origin v0.0.x
 # Will create a new tag and a new release
 ```
 
+---
+
 ```mermaid
 flowchart TD
     Start([Push Tag v*.*.* ]) --> ValidateJob[Validate Job]
