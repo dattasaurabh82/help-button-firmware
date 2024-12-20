@@ -225,27 +225,27 @@ TBD
 
 ![alt text](<assets/Step 1.png>)
 
-1. Go to: https://dattasaurabh82.github.io/help-button-firmware/ and click "Connect". Of course, plug in your device first.
+1.1. Go to: https://dattasaurabh82.github.io/help-button-firmware/ and click "Connect". Of course, plug in your device first.
 
 ![alt text](<assets/Step 2.png>)
 
-2. Select the correct serial port/COM port (in Windows)
+1.2. Select the correct serial port/COM port (in Windows)
 
 ![alt text](<assets/Step 3.png>)
 
-3. Click "Install Button Firmware". The latest firmware is always there because of our automations (mentioned above).
+1.3. Click "Install Button Firmware". The latest firmware is always there because of our automations (mentioned above).
 
 ![alt text](<assets/Step 4.png>)
 
-4. Select "Erase device" to Erase teh flash and then click "Next".
+1.4. Select "Erase device" to Erase teh flash and then click "Next".
 
 ![alt text](<assets/Step 5.png>)
 
-5. Click "Install" to start firmware flashing.
+1.5. Click "Install" to start firmware flashing.
 
 ![alt text](<assets/Step 6.png>)
 
-6. Now wait and follow the prompts and watch the progress.
+1.6. Now wait and follow the prompts and watch the progress.
 
 ![alt text](<assets/Step 7.png>)
 
@@ -253,7 +253,7 @@ TBD
 
 ![alt text](<assets/Step 9.png>)
 
-7. After completion, open the serial port, for now, to check.
+1.7. After completion, open the serial port, for now, to check.
 
 > If there are trouble, the UI will guide you on how to troubleshoot.
 
