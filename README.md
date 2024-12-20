@@ -44,9 +44,9 @@
 ```
 
 1. The main firmware directory is: [main/](main/) .
-2. The arduino code within the main firmware dir is here [main/arduino/button_firmware/](main/arduino).
+2. The arduino code within the main firmware dir is here [main/arduino/button_firmware/](main/arduino) .
 3. The compiled binaries are stored in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)
-4. [webflasher/](webflasher/) hosts files for a _web firmware installer_ website for flashing the __*latest__ firmware to our esp32-h2 modules.
+4. [webflasher/](webflasher/) hosts files for a _web firmware installer_ website for flashing the __*latest__ firmware to our esp32-h2 modules, from a webiste hosted in gh-pages.
 
    > __It uses [ESP Web Tools](https://esphome.github.io/esp-web-tools/)__. More about details about it and how to use it, will follow later.
 
