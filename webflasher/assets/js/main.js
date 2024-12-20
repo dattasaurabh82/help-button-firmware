@@ -3,6 +3,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // button.manifest = `manifest.json`;
   
     // For GitHub Pages, use the full path to your manifest
-    button.manifest = `${window.location.origin}/help-button-firmware-flasher/manifest.json`;
-    // button.manifest = `${window.location.origin}/help-button-firmware/manifest.json`;
+    button.manifest = `${window.location.origin}/help-button-firmware/manifest.json`;
   });

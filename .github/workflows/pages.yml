@@ -1,4 +1,4 @@
-name: Deploy Web Flasher to GitHub Pages
+name: Deploy webflasher to GitHub Pages
 
 on:
   workflow_dispatch:  # Manual trigger for now
