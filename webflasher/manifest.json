@@ -1,5 +1,5 @@
 {
-    "name": "Button Firmware",
+    "name": "Button Firmware Definition",
     "version": "1.0",
     "new_install_prompt_erase": true,
     "builds": [
@@ -8,7 +8,7 @@
         "improv": false,
         "parts": [
           {
-            "path": "../main/arduino/binary/button_firmware.merged.bin",
+            "path": "firmware/button_firmware.merged.bin",
             "offset": "0x0"
           }
         ]

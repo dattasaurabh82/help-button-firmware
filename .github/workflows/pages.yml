@@ -28,6 +28,16 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+      
+      - name: Prepare deployment files
+        run: |
+          # Create firmware directory in webflasher
+          ls -la
+          mkdir -p webflasher/firmware
+          # Copy the latest binary file
+          cp main/arduino/button_firmware/binary/button_firmware.merged.bin webflasher/firmware/
+          # Verify the file exists
+          ls -la webflasher/firmware/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
