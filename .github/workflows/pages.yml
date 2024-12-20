@@ -2,11 +2,14 @@ name: Deploy webflasher to GitHub Pages
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to deploy (leave empty to use latest tag)'
-        required: false  # Make it optional
-        type: string
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: 'Version to deploy (leave empty to use latest tag)'
+#         required: false  # Make it optional
+#         type: string
 
 permissions:
   contents: read
@@ -31,18 +34,25 @@ jobs:
         with:
           fetch-depth: 0  # Need full history for tags
       
-      - name: Get version to use
+      # - name: Get version to use
+      #   run: |
+      #     if [ -z "${{ inputs.version }}" ]; then
+      #       # If no version provided, get latest tag
+      #       LATEST_TAG=$(git describe --tags --abbrev=0)
+      #       echo "VERSION=${LATEST_TAG}" >> $GITHUB_ENV
+      #       echo "Using latest tag: ${LATEST_TAG}"
+      #     else
+      #       # Use provided version
+      #       echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+      #       echo "Using provided version: ${{ inputs.version }}"
+      #     fi
+
+      - name: Get latest tag version
         run: |
-          if [ -z "${{ inputs.version }}" ]; then
-            # If no version provided, get latest tag
-            LATEST_TAG=$(git describe --tags --abbrev=0)
-            echo "VERSION=${LATEST_TAG}" >> $GITHUB_ENV
-            echo "Using latest tag: ${LATEST_TAG}"
-          else
-            # Use provided version
-            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
-            echo "Using provided version: ${{ inputs.version }}"
-          fi
+          LATEST_TAG=$(git describe --tags --abbrev=0)
+          echo "VERSION=${LATEST_TAG}" >> $GITHUB_ENV
+          echo "Using latest tag: ${LATEST_TAG}"
+          echo ""
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
