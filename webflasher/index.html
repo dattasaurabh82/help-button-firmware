@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ESP32-H2 firmware installer</title>
+    <meta
+      name="description"
+      content="Easily allow users to install ESP32-H2 firmware from the web."
+    />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- Add favicon links -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <!-- Existing styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script type="module" src="https://unpkg.com/esp-web-tools/dist/web/install-button.js?module"></script>
+  </head>
+  <body>
+    <div class="content">
+      <span class="footer-signature">
+        <img src="assets/logo_black_fullname.png" alt="JENNYFER" class="signature-img"> 
+      </span>
+      <h3>ESP firmware flasher</h3>
+      <p>
+        Firmware: <a href="https://github.com/dattasaurabh82/help-button-firmware/tree/main">"HELP" by JENNYFER</a>
+      </p>
+      <p>
+        Module: <span class="module-type">ESP32-H2</span>
+      </p>
+      
+      <p class="button-row" align="left">
+        <esp-web-install-button></esp-web-install-button>
+      </p>
+    </div>
+    <div class="footer">
+      Installer powered by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>. Customized for the project by <a href="https://github.com/dattasaurabh82">Saurabh Datta</a>
+    </div>
+    <script src="assets/js/main.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,17 @@
+{
+    "name": "Button Firmware",
+    "version": "1.0",
+    "new_install_prompt_erase": true,
+    "builds": [
+      {
+        "chipFamily": "ESP32-H2",
+        "improv": false,
+        "parts": [
+          {
+            "path": "../main/arduino/binary/button_firmware.merged.bin",
+            "offset": "0x0"
+          }
+        ]
+      }
+    ]
+  }
