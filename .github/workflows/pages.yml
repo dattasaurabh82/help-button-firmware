@@ -60,8 +60,13 @@ jobs:
       - name: Update version in manifest.json and the index.html to the last binary release version
         run: |
           # Update manifest.json
+          echo "Updated manifest.json file:"
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${{ env.VERSION }}\"/" webflasher/manifest.json
           cat webflasher/manifest.json
+          echo ""
+          echo ""
+          echo "Updated index.html file:"
+          echo ""
           # Update index.html
           sed -i "s/VERSION_PLACEHOLDER/${{ env.VERSION }}/" webflasher/index.html
           cat webflasher/index.html
