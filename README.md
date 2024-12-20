@@ -6,6 +6,64 @@
 
 ---
 
+## File Structure
+
+```txt
+├── LICENSE
+├── README.md
+├── assets/
+│     ├── [README.md's viausl assets]
+├── main/
+│   ├── arduino/
+│   │   └── button_firmware/
+│   │       ├── binary/
+│   │       │   ├── build_info.txt
+│   │       │   ├── build_log.txt
+│   │       │   ├── button_firmware.bin
+│   │       │   ├── button_firmware.bootloader.bin
+│   │       │   ├── button_firmware.elf
+│   │       │   ├── button_firmware.map
+│   │       │   ├── button_firmware.merged-v0.0.3.bin
+│   │       │   ├── button_firmware.merged.bin
+│   │       │   └── button_firmware.partitions.bin
+│   │       └── button_firmware.ino
+│   └── pio/[TBD]
+├── test/[TBD]
+└── webflasher/
+    ├── assets/
+    │   ├── css./
+    │   │   └── styles.css
+    │   ├── favicon.ico
+    │   ├── js/
+    │   │   └── main.js
+    │   └── logo_black_fullname.png
+    ├── firmware/
+    │   └── button_firmware.merged.bin
+    ├── index.html
+    └── manifest.json
+```
+
+1. The main firmware directory is: [main/](main/) .
+2. The arduino code within the main firmware dir is here [main/arduino/button_firmware/](main/arduino).
+3. The compiled binaries are stored in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)
+4. [webflasher/](webflasher/) hosts files for a _web firmware installer_ website for flashing the __*latest__ firmware to our esp32-h2 modules.
+
+   > __It uses [ESP Web Tools](https://esphome.github.io/esp-web-tools/)__. More about details about it and how to use it, will follow later.
+
+## Automations and CI/CD pipelins
+
+1. An [automation flow to build releases](.github/workflows/build_main_firmware.yml) from the sopurce code as binary files, is triggered by new unique tag pushes.
+
+> __This also commits and pushes the binaries to the repository itself in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)__
+
+```bash
+git tag v0.0.x
+git push -u origin v0.0.x
+```
+
+1. 
+2. 
+
 ## Hardware Preparation
 
 <details>
