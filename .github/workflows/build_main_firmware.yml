@@ -102,14 +102,15 @@ jobs:
           git config --global user.email "actions@github.com"
           git fetch origin
           git checkout main
-          if git diff --quiet; then
+          # Make sure we're tracking all files
+          git add -f binary/  # Force add the binary directory
+          if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-          git add .
           git commit -m "Add compiled firmware binaries for version ${GITHUB_REF_NAME}"
           git push origin main || exit 1
-          git push origin :refs/tags/${GITHUB_REF_NAME} || true  # Don't fail if tag doesn't exist
+          git push origin :refs/tags/${GITHUB_REF_NAME} || true
           git tag -d ${GITHUB_REF_NAME} || true
           git tag ${GITHUB_REF_NAME}
           git push origin ${GITHUB_REF_NAME}
