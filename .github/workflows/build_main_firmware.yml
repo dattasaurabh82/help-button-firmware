@@ -169,9 +169,3 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      ###################################
-      # Transfer release to flasher repo
-      ###################################
-      # TBD
-

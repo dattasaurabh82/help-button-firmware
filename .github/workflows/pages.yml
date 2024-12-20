@@ -2,8 +2,10 @@ name: Deploy webflasher to GitHub Pages
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]  # This will trigger when a release is published
+  workflow_run:
+    workflows: ["Build and Release Firmware"]
+    types:
+      - completed # This will trigger when a release is published
 
 permissions:
   contents: read
