@@ -60,17 +60,17 @@ jobs:
       - name: Prepare deployment files
         run: |
           echo "Current Files:"
-          ls -la
+          tree
           echo ""
           # Delete old firmware directory in webflasher
           echo "Deleting old firmware dir ..."
           rm -rf webflasher/firmware
-          ls -la
+          tree
           echo ""
           # Create firmware directory in webflasher
           echo "Deleting old firmware dir ..."
           mkdir -p webflasher/firmware
-          ls -la
+          tree
           echo ""
           # Copy the latest binary file
           echo "Copying latest firmwar from main/arduino/button_firmware/binary/ to webflasher/firmware/"
