@@ -237,7 +237,7 @@ TBD
 
 ![alt text](<assets/Step 4.png>)
 
-1.4. Select "Erase device" to Erase teh flash and then click "Next".
+1.4. Select "Erase device" to Erase the flash and then click "Next".
 
 ![alt text](<assets/Step 5.png>)
 
@@ -258,6 +258,8 @@ TBD
 > If there are trouble, the UI will guide you on how to troubleshoot.
 
 </details>
+
+---
 
 <details>
 <summary>2. arduino-cli (Just want to flash the firmware - But from your local machine)</summary>
@@ -324,6 +326,7 @@ arduino-cli upload -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=de
 TBD
 </details>
 
+---
 
 <details>
 <summary>3. Arduino IDE 2.3.4 (Easy for Development and want to look under the hood)</summary>
@@ -356,6 +359,8 @@ TBD
 3.2.4. Select the appropriate USB Serial port for your device (in Win, make sure you ahve "xxx" drtiver installed and then select the right COM port; on mac and linux, you can ignore).
 3.2.5. Click the Upload button to flash the firmware. It will compile and upload
 </details>
+
+---
 
 <details>
 <summary>4. Platform IO (If you are a pro and are keen in firmware development)</summary>
