@@ -63,6 +63,7 @@ jobs:
           echo "Build started at: $(date)" > binary/build_info.txt
           echo "Git commit: ${{ github.sha }}" >> binary/build_info.txt
           echo "Version: ${{ github.ref_name }}" >> binary/build_info.txt
+          pwd
 
       - name: Compile firmware
         id: compile
@@ -71,10 +72,13 @@ jobs:
             --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=default,FlashFreq=64,FlashMode=qio,FlashSize=4M,PartitionScheme=default,DebugLevel=none,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default \
             --output-dir binary \
             button_firmware.ino 2>&1 | tee binary/build_log.txt
+          pwd
 
       - name: Verify binary files
         run: |
+          pwd
           cd binary
+          pwd
           for file in "button_firmware.ino.bin" "button_firmware.ino.merged.bin"; do
             if [ ! -f "$file" ]; then
               echo "ERROR: Required file $file not found!"
