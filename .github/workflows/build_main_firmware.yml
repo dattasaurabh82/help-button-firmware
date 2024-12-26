@@ -56,6 +56,14 @@ jobs:
       ###################
       # Build Firmware
       ###################
+      - name: Create config.h
+        run: |
+          echo "#ifndef CONFIG_H" > config.h
+          echo "#define CONFIG_H" >> config.h
+          echo "#define PRODUCT_KEY ${{ secrets.PRODUCT_KEY }}" >> config.h
+          echo "#define BATCH_ID ${{ secrets.BATCH_ID }}" >> config.h
+          echo "#endif" >> config.h
+          
       - name: Clean and create binary directory
         run: |
           rm -rf binary
