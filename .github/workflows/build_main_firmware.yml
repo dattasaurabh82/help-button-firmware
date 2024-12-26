@@ -68,9 +68,6 @@ jobs:
           echo "#define PRODUCT_KEY ${{ secrets.PRODUCT_KEY }}" >> config.h
           echo "#define BATCH_ID ${{ secrets.BATCH_ID }}" >> config.h
           echo "#endif" >> config.h
-          ls -la
-          echo "Content of config.h:"
-          cat config.h
 
       - name: Clean and create binary directory
         run: |
