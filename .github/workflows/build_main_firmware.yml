@@ -78,7 +78,9 @@ jobs:
         run: |
           pwd
           cd binary
+          echo "we are charhing here 1"
           pwd
+          echo "we are charhing here 2"
           for file in "button_firmware.ino.bin" "button_firmware.ino.merged.bin"; do
             if [ ! -f "$file" ]; then
               echo "ERROR: Required file $file not found!"
