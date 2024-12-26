@@ -30,6 +30,8 @@
 #include "esp_mac.h"
 #include <driver/rtc_io.h>
 
+#include <Adafruit_NeoPixel.h>.  // For the status LED
+
 /* ============= Configuration Constants ============= */
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
 
@@ -55,6 +57,49 @@ RTC_DATA_ATTR static rtc_data_t rtc_data; /**< Persists across deep sleep */
 BLEAdvertising* pAdvertising = nullptr;   /**< BLE advertising handle */
 
 
+/* ============= Status LED setup ============= */
+const uint8_t ledPin = 8;
+Adafruit_NeoPixel led(1, ledPin, NEO_GRB + NEO_KHZ800);
+
+/**
+ * @brief LED setup func
+ * @details Initializes GPIO8 as output and pulls it low
+ */
+inline void setupLed() {
+  led.begin();
+  led.setBrightness(50);  // 0-255
+  led.clear();
+  led.show();
+}
+
+/**
+ * @brief LED setup func
+ * @details setsup RED LED 
+ */
+inline void setLedRed() {
+  led.setPixelColor(0, led.Color(255, 0, 0));
+  led.show();
+}
+/**
+ * @brief LED setup func
+ * @details setsup GREEN LED 
+ */
+inline void setLedGreen() {
+  led.setPixelColor(0, led.Color(0, 255, 0));
+  led.show();
+}
+
+/**
+ * @brief LED setup func
+ * @details Turns off all LEDs
+ */
+inline void setLedOff() {
+  led.clear();
+  led.show();
+}
+
+
+
 /* Function Prototypes */
 void enterFactoryMode(void);
 void enterNormalMode(void);
@@ -63,16 +108,11 @@ uint32_t generateRollingCode(void);
 void setupBLE(void);
 void broadcastBeacon(uint32_t code);
 void printDebugInfo(uint32_t code);
+void disableUnusedPins(void);
 String getMacAddress(void);
 
 
-// void disableUnusedPins() {
-//   const int unusedPins[] = { 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
-//   for (int pin : unusedPins) {
-//     pinMode(pin, OUTPUT);
-//     digitalWrite(pin, LOW);
-//   }
-// }
+
 
 /**
  * @brief Arduino setup function
@@ -83,8 +123,11 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n[INIT] Starting Emergency Beacon...");
 
-  // TBD
-  // disableUnusedPins();
+  // WIP
+  disableUnusedPins();
+
+  // Configure status LED
+  setupLed();
 
   // Configure BOOT button with internal pullup
   pinMode(BOOT_PIN, INPUT_PULLUP);
@@ -137,7 +180,8 @@ void loop() {
  */
 void enterFactoryMode(void) {
   Serial.println("\n[FACTORY] Entering Factory Reset Mode");
-  // DEBUG.PRINTLN(F("\n[FACTORY] Entering Factory Reset Mode"));
+
+  setLedRed();  // Red ON, Green OFF
 
   // Generate and store new seed
   rtc_data.seed = generateSeed();
@@ -146,6 +190,7 @@ void enterFactoryMode(void) {
   // Print device information
   Serial.printf("[FACTORY] Device MAC: %s\n", getMacAddress().c_str());
   Serial.printf("[FACTORY] Generated Seed: 0x%08lX\n", rtc_data.seed);
+  Serial.printf("[FACTORY] Take a note.\n[FACTORY] Will await 60 sec t jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation.\n");
 
   // Wait for button press or timeout
   uint32_t start_time = millis();
@@ -172,6 +217,8 @@ void enterFactoryMode(void) {
 void enterNormalMode(void) {
   Serial.println("\n[NORMAL] Entering Normal Operation Mode");
 
+  setLedGreen();  // Green ON, Red OFF
+
   // Generate new rolling code
   uint32_t rolling_code = generateRollingCode();
 
@@ -188,6 +235,8 @@ void enterNormalMode(void) {
   // Configure wakeup on GPIO
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;
   esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  setLedOff();  // set both LEDs OFF
 
   esp_deep_sleep_start();
 }
@@ -308,4 +357,21 @@ String getMacAddress(void) {
   snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   return String(mac_str);
+}
+
+
+/**
+ * @brief disables floating unused pins
+ */
+void disableUnusedPins(void) {
+  const gpio_num_t unusedPins[] = {
+    GPIO_NUM_2, GPIO_NUM_3, GPIO_NUM_4, GPIO_NUM_5,
+    GPIO_NUM_6, GPIO_NUM_7, GPIO_NUM_11, GPIO_NUM_12
+  };
+
+  for (gpio_num_t pin : unusedPins) {
+    gpio_reset_pin(pin);
+    gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+    gpio_set_level(pin, 0);
+  }
 }
