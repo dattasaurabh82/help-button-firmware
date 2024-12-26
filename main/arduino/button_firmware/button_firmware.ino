@@ -1,353 +1,311 @@
 /**
- * Emergency Beacon Device - Base Implementation
- * 
- * This code implements a secure BLE emergency beacon using ESP32-H2
- * with power-efficient state management and secure rolling codes.
- * 
- * Operation Modes:
- * - FACTORY_NEW: Initial state, ready for setup
- * - SETUP_PENDING: Broadcasting device info for registration
- * - SETUP_COMPLETE: Normal operation with rolling codes
- * - RECOVERY: Handling power loss and state recovery
- * 
- * Security Features:
- * - Unique device seed from MAC + BatchID
- * - Rolling code implementation
- * - Power loss protection
- * - State validation
- * 
- * Hardware Requirements:
- * - ESP32-H2 module
- * - BOOT button (GPIO9)
- * 
- * Note: For production, change MANUFACTURER_ID from 0xFFFF to your
- * assigned Bluetooth SIG company identifier
+ * @file    secure_ble_beacon.ino
+ * @brief   Secure BLE Emergency Beacon Implementation for ESP32-H2
+ * @details Implements a secure rolling code beacon with factory reset 
+ *          and normal operation modes and deep sleep modes.
+ * @note    ESP32-H2 specific implementation
+ * @version 0.0.1
 
-  ----------------------------------
-  DEVICE STATES
-  ----------------------------------
-  A. FACTORY_NEW
-    - Happens after 1st time uploading code
-    - Fresh device, no configuration
-    - Contains only programmed MAC and default keys
-    - Ready for setup
-
-  B. SETUP_PENDING
-    - Device powered on first time
-    - Broadcasting device info for registration
-    - Waiting for app pairing
-    - Limited time window (e.g., 5 minutes)
-
-  C. SETUP_COMPLETE
-    - Normal operation mode
-    - Ready for button triggers
-    - Deep sleep capable
-    - Rolling code active
-
-  D. RECOVERY
-    - Handles power loss
-    - Validates stored state
-    - Can reenter setup if needed
-  ----------------------------------
-
-  ----------------------------------
-  BUTTON INTERACTIONS
-  ----------------------------------
-  A. Normal Operation:
-    - Single press: Wake & broadcast
-    - Sleep after broadcast
-
-  B. Setup Entry:
-    - From OFF state: Hold BOOT while powering on
-    - OR: 5 quick presses within 3 seconds
-
-  C. Setup Exit:
-    - Timeout after 5 minutes
-    - OR: Successful registration
-    - OR: Single long press
-  ----------------------------------
-
-  -----------------------------------------------
-  STATE STORAGE & ROLLING CODE RECOVERY MECHANISM
-  -----------------------------------------------
-  A. RTC Memory (Survives deep sleep):
-    - Current rolling code
-    - Wake count
-    - Operation mode
-
-  B. Flash Memory (Survives power loss):
-    - Device state
-    - Registration status
-    - Batch/Product keys
-    - Last valid code
  */
+
+/* 
+* The BLE config defines can be removed since they're in sdkconfig.h
+* So, if furthr optimization needed, do it there. 
+ */
+// #define CONFIG_BT_BLE_50_FEATURES_SUPPORTED 0
+// #define CONFIG_BT_BLE_42_FEATURES_SUPPORTED 1
+// #define CONFIG_BT_CTRL_MODE_BR_EDR_ONLY 0
+// #define CONFIG_BT_CTRL_MODE_EFF 1
+
+#include "config.h"  // Product configuration macros
+// #include "debug.h"            // Debug macros
+// #include "hardware_config.h"  // Hardware configuration
 
 #include <BLEDevice.h>
-#include <BLEUtils.h>
 #include <BLEAdvertising.h>
-#include "esp_sleep.h"
-#include <Preferences.h>
+
 #include <esp_system.h>
-#include "esp_bt.h"   // Add this for ESP_MAC_BT
-#include "esp_mac.h"  // Add this for esp_read_mac
+#include <esp_sleep.h>
+#include <esp_bt.h>
+#include "esp_mac.h"
+#include <driver/rtc_io.h>
 
-// Device Configuration
-#define MANUFACTURER_ID 0xFFFF     // ** Development ID (Change for production)
-#define PRODUCT_TYPE 0x01          // Product type identifier
-const uint16_t BATCH_ID = 0x0001;  // Changed to const for proper reference
+/* ============= Configuration Constants ============= */
+#define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
 
-// Timing Configuration
-#define SETUP_TIMEOUT 300000  // Setup mode timeout (5 minutes)
-#define ADVERTISE_TIME 10000  // Normal advertisement time (10 seconds)
-#define BUTTON_INTERVAL 250   // Debounce time (milliseconds)
+/* ========== NOTE ========== */
+// Moved to Macros
+// #define PRODUCT_KEY 0x12345678UL        /**< Product-specific key */
+// #define BATCH_ID 0x0001U                /**< Production batch identifier */
+/* ========================== */
 
-// Security Parameters
-#define PRODUCT_KEY 0x12345678  // ** Product line key (Change per product line)
+#define BOOT_PIN 9            /**< GPIO pin for BOOT button */
+#define BEACON_TIME_MS 10000  /**< Broadcast duration in ms */
+#define FACTORY_WAIT_MS 60000 /**< Factory reset timeout in ms */
 
-// State Management
-enum DeviceState {
-  FACTORY_NEW = 0,
-  SETUP_PENDING,
-  SETUP_COMPLETE,
-  RECOVERY
-};
+/* ============= Type Definitions ============= */
+typedef struct {
+  uint32_t seed;       /**< Device-specific seed */
+  uint32_t counter;    /**< Rolling code counter */
+  bool is_initialized; /**< Initialization flag */
+} rtc_data_t;
 
-// Fix printf format warnings
-#define PRINTF_UINT32 "lu"  // Use for uint32_t printing
+/* ============= Global Variables ============= */
+RTC_DATA_ATTR static rtc_data_t rtc_data; /**< Persists across deep sleep */
+BLEAdvertising* pAdvertising = nullptr;   /**< BLE advertising handle */
 
-// Rolling code secure & unique related vars
-// - RTC Memory Variables
-// - persist during sleep
-RTC_DATA_ATTR static uint32_t rollCode = 0;
-RTC_DATA_ATTR static uint32_t wakeCount = 0;
-RTC_DATA_ATTR static DeviceState currentState = FACTORY_NEW;
-RTC_DATA_ATTR static uint32_t deviceSeed = 0;
 
-// Global Objects
-Preferences preferences;
-BLEAdvertising *pAdvertising = nullptr;
+/* Function Prototypes */
+void enterFactoryMode(void);
+void enterNormalMode(void);
+uint32_t generateSeed(void);
+uint32_t generateRollingCode(void);
+void setupBLE(void);
+void broadcastBeacon(uint32_t code);
+void printDebugInfo(uint32_t code);
+String getMacAddress(void);
 
-// Function Declarations
-void initializeDevice();
-void handleSetupMode();
-void handleNormalOperation();
-void handleRecovery();
-bool checkSetupEntry();
-void generateDeviceSeed();
-uint32_t generateRollingCode();
-void configureAdvertising(bool isSetup);
 
-/**
- * Device Initialization and Core Functions
- */
-
-// Flash storage keys
-#define PREF_STATE "devState"
-#define PREF_SEED "devSeed"
-#define PREF_CODE "lastCode"
-#define PREF_COUNT "wakeCount"
+// void disableUnusedPins() {
+//   const int unusedPins[] = { 1, 2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
+//   for (int pin : unusedPins) {
+//     pinMode(pin, OUTPUT);
+//     digitalWrite(pin, LOW);
+//   }
+// }
 
 /**
- * Generate unique device seed from hardware identifiers
+ * @brief Arduino setup function
+ * @details Initializes device and determines operation mode
  */
-void generateDeviceSeed() {
-  uint8_t macAddr[6];
-  esp_err_t result = esp_read_mac(macAddr, ESP_MAC_BT);
-  if (result != ESP_OK) {
-    Serial.println("Failed to read MAC address");
-    return;
-  }
+void setup() {
 
-  // Combine MAC, BATCH_ID, and PRODUCT_KEY for unique seed
-  deviceSeed = PRODUCT_KEY ^ ((uint32_t)BATCH_ID << 16) ^ ((macAddr[0] << 24) | (macAddr[1] << 16) | (macAddr[2] << 8) | macAddr[3]);
+  Serial.begin(115200);
+  Serial.println("\n[INIT] Starting Emergency Beacon...");
 
-  preferences.putUInt(PREF_SEED, deviceSeed);
-  Serial.printf("Device Seed Generated: 0x%08" PRINTF_UINT32 "\n", deviceSeed);
-}
+  // TBD
+  // disableUnusedPins();
 
-/**
- * Check for setup mode entry conditions
- * Returns true if setup mode should be entered
- */
-bool checkSetupEntry() {
-  static uint32_t pressCount = 0;
-  static uint32_t lastPress = 0;
+  // Configure BOOT button with internal pullup
+  pinMode(BOOT_PIN, INPUT_PULLUP);
 
-  uint32_t now = millis();
-
-  // Check for button press pattern
-  if ((now - lastPress) < 3000) {
-    pressCount++;
-    if (pressCount >= 5) {
-      return true;
-    }
+  // Check operation mode:
+  // Only enter Factory Mode if not initialized OR reset button held during power-up
+  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
+    Serial.println(F("[WARNING] Factory reset required"));
+    enterFactoryMode();
   } else {
-    pressCount = 1;
+    enterNormalMode();
   }
-  lastPress = now;
+}
 
-  return false;
+
+// void setup() {
+//   Serial.begin(115200);
+//   Serial.println(F("\n[INIT] Starting Emergency Beacon..."));
+
+//   // TBD: Disbale othe rfloating pins
+//   // disableUnusedPins();
+
+//   // Configure BOOT button with internal pullup
+//   pinMode(BOOT_PIN, INPUT_PULLUP);
+
+//   // Check if factory reset needed
+//   if (!rtc_data.is_initialized) {
+//     if (esp_reset_reason() == ESP_RST_POWERON) {
+//       Serial.println(F("[ERROR] Factory reset required"));
+//       // esp_deep_sleep_start();
+//       // return;
+//     }
+//     enterFactoryMode();
+//   } else {
+//     enterNormalMode();
+//   }
+// }
+
+
+/**
+ * @brief Main loop function (unused - device sleeps between operations)
+ */
+void loop() {
+  delay(1000);
 }
 
 /**
- * Generate next rolling code
+ * @brief Handles factory reset mode operations
+ * @details Generates new seed, displays debug info, waits for confirmation
  */
-uint32_t generateRollingCode() {
-  uint32_t timestamp = esp_timer_get_time() & 0xFFFFFF;
-  uint32_t base = (rollCode == 0) ? deviceSeed : rollCode;
+void enterFactoryMode(void) {
+  Serial.println("\n[FACTORY] Entering Factory Reset Mode");
+  // DEBUG.PRINTLN(F("\n[FACTORY] Entering Factory Reset Mode"));
 
-  // Multi-stage mixing function
+  // Generate and store new seed
+  rtc_data.seed = generateSeed();
+  rtc_data.counter = 0;
+
+  // Print device information
+  Serial.printf("[FACTORY] Device MAC: %s\n", getMacAddress().c_str());
+  Serial.printf("[FACTORY] Generated Seed: 0x%08lX\n", rtc_data.seed);
+
+  // Wait for button press or timeout
+  uint32_t start_time = millis();
+  while (millis() - start_time < FACTORY_WAIT_MS) {
+    if (digitalRead(BOOT_PIN) == LOW) {
+      Serial.println("[FACTORY] Button press detected");
+      delay(100);  // Debounce
+      break;
+    }
+    delay(100);
+  }
+
+  // Mark as initialized and transition
+  rtc_data.is_initialized = true;
+  Serial.println("[FACTORY] Transitioning to Normal Mode");
+  delay(100);  // Allow serial to flush
+  enterNormalMode();
+}
+
+/**
+ * @brief Handles normal operation mode
+ * @details Generates rolling code, broadcasts, then enters deep sleep
+ */
+void enterNormalMode(void) {
+  Serial.println("\n[NORMAL] Entering Normal Operation Mode");
+
+  // Generate new rolling code
+  uint32_t rolling_code = generateRollingCode();
+
+  // Setup BLE and broadcast
+  setupBLE();
+  printDebugInfo(rolling_code);
+  broadcastBeacon(rolling_code);
+
+  // Increment counter and prepare for sleep
+  rtc_data.counter++;
+  Serial.println("[NORMAL] Entering deep sleep");
+  delay(100);  // Allow serial to flush
+
+  // Configure wakeup on GPIO
+  const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;
+  esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  esp_deep_sleep_start();
+}
+
+/**
+ * @brief Generates unique device seed
+ * @return uint32_t Unique seed value
+ */
+uint32_t generateSeed(void) {
+  uint8_t macAddr[6];
+  esp_read_mac(macAddr, ESP_MAC_IEEE802154);
+
+  // XOR mixing of MAC, BATCH_ID, and PRODUCT_KEY
+  uint32_t seed = PRODUCT_KEY;
+  seed ^= ((uint32_t)BATCH_ID << 16);
+  seed ^= ((macAddr[0] << 24) | (macAddr[1] << 16) | (macAddr[2] << 8) | macAddr[3]);
+  return seed;
+}
+
+
+/**
+ * @brief Generates rolling code based on seed and counter
+ * @return uint32_t New rolling code value
+ */
+uint32_t generateRollingCode(void) {
+  uint32_t timestamp = esp_timer_get_time() & 0xFFFFFF;
+  uint32_t base = rtc_data.seed;
+
+  // Multi-stage mixing
   uint32_t mixed = (base ^ timestamp) * 0x7FFF;
   mixed = mixed ^ (mixed >> 13);
   mixed = mixed * 0x5C4D;
   mixed = mixed ^ (mixed >> 17);
-  mixed = mixed * deviceSeed;
+  mixed = mixed * rtc_data.seed;
   mixed = mixed ^ (mixed >> 16);
 
   return mixed;
 }
 
 /**
- * Configure BLE advertising based on mode
+ * @brief Initializes BLE advertising
  */
-void configureAdvertising(bool isSetup) {
-  if (pAdvertising == nullptr) {
-    pAdvertising = BLEDevice::getAdvertising();
+void setupBLE(void) {
+  BLEDevice::init(PRODUCT_NAME);  // Changed from "Emergency_Beacon"
+  pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinInterval(0x20);
+  pAdvertising->setMaxInterval(0x40);
+}
+
+
+
+/**
+* @brief Broadcasts rolling code via BLE advertising
+* @param code 32-bit rolling code to broadcast
+* 
+* Function flow:
+* 1. Validates BLE initialization
+* 2. Splits 32-bit code into 4 bytes
+* 3. Creates BLE advertisement payload
+* 4. Broadcasts for BEACON_TIME_MS duration
+*/
+void broadcastBeacon(uint32_t code) {
+  // Check BLE initialization
+  if (!pAdvertising) {
+    Serial.println(F("[ERROR] BLE not initialized"));
+    return;
   }
 
+  // Split 32-bit code into byte array
+  uint8_t payload[4];
+  payload[0] = (code >> 24) & 0xFF;
+  payload[1] = (code >> 16) & 0xFF;
+  payload[2] = (code >> 8) & 0xFF;
+  payload[3] = code & 0xFF;
+
+  // Create advertisement data
   BLEAdvertisementData advData;
-  uint8_t payload[12];
-
-  // Common header
-  payload[0] = MANUFACTURER_ID & 0xFF;
-  payload[1] = (MANUFACTURER_ID >> 8) & 0xFF;
-  payload[2] = PRODUCT_TYPE;
-
-  if (!isSetup) {
-    uint32_t code = generateRollingCode();
-    payload[3] = (code >> 24) & 0xFF;
-    payload[4] = (code >> 16) & 0xFF;
-    payload[5] = (code >> 8) & 0xFF;
-    payload[6] = code & 0xFF;
-    payload[7] = wakeCount & 0xFF;
-
-    Serial.println("\nBroadcast Payload:");
-    Serial.printf("Manufacturer ID: 0x%04X\n", MANUFACTURER_ID);
-    Serial.printf("Product Type: 0x%02X\n", PRODUCT_TYPE);
-    Serial.printf("Rolling Code: 0x%08lu\n", code);
-    Serial.printf("Wake Count: %lu\n", wakeCount);
+  advData.setName(PRODUCT_NAME);
+  String data;
+  for (int i = 0; i < 4; i++) {
+    data += (char)payload[i];  // Convert bytes to chars
   }
-
-  String manufacturerData;
-  for (int i = 0; i < (isSetup ? 12 : 8); i++) {
-    manufacturerData += (char)payload[i];
-  }
-
-  advData.setManufacturerData(manufacturerData);
+  advData.setManufacturerData(data);  // Set payload
   pAdvertising->setAdvertisementData(advData);
+
+  // Start advertising for specified duration
+  pAdvertising->start();
+  delay(BEACON_TIME_MS);
+  pAdvertising->stop();
+}
+
+
+/**
+ * @brief Prints debug information to serial
+ * @param code Current rolling code
+ */
+void printDebugInfo(uint32_t code) {
+  Serial.println("\n=== Debug Information ===");
+  Serial.printf("MAC Address: %s\n", getMacAddress().c_str());
+  Serial.printf("Product Key: 0x%08lX\n", PRODUCT_KEY);
+  Serial.printf("Batch ID: 0x%04X\n", BATCH_ID);
+  Serial.printf("Current Seed: 0x%08lX\n", rtc_data.seed);
+  Serial.printf("Counter: %lu\n", rtc_data.counter);
+  Serial.printf("Rolling Code: 0x%08lX\n", code);
+  Serial.printf("Algorithm: Mixed-bit with time seed\n");
+  Serial.println("=======================\n");
 }
 
 /**
- * Handle setup mode operation
+ * @brief Gets device MAC address as string
+ * @return String MAC address
  */
-void handleSetupMode() {
-  Serial.println("Entering setup mode...");
-
-  BLEDevice::init("Emergency Setup");
-  configureAdvertising(true);
-
-  // Start advertising
-  pAdvertising->start();
-
-  uint32_t setupStart = millis();
-  while ((millis() - setupStart) < SETUP_TIMEOUT) {
-    // TODO: Add setup confirmation check
-    delay(100);
-  }
-
-  // Exit setup mode
-  pAdvertising->stop();
-  currentState = SETUP_COMPLETE;
-  preferences.putUInt(PREF_STATE, SETUP_COMPLETE);
-}
-
-/**
- * Handle normal operation
- */
-void handleNormalOperation() {
-  wakeCount++;
-
-  BLEDevice::init("Emergency Beacon");
-  configureAdvertising(false);
-
-  pAdvertising->start();
-  Serial.printf("Broadcasting - Wake Count: %" PRINTF_UINT32 "\n", wakeCount);
-
-  delay(ADVERTISE_TIME);
-  pAdvertising->stop();
-
-  if (wakeCount % 10 == 0) {
-    preferences.putUInt(PREF_COUNT, wakeCount);
-    preferences.putUInt(PREF_CODE, rollCode);
-  }
-}
-
-
-void setup() {
-  Serial.begin(115200);
-  delay(3000);  // Give serial time to stabilize
-
-  Serial.println("\n=== Emergency Beacon ===");
-  // Serial.println("\n\n=== Emergency Beacon Setup ===");
-  // Serial.println("NOTE: Current implementation is simplified:");
-  // Serial.println("- Skips proper setup state management");
-  // Serial.println("- Moves directly from FACTORY_NEW to normal operation");
-  // Serial.println("- Setup mode and verification to be implemented in next sprint");
-  // Serial.println("=====================================\n");
-
-  preferences.begin("beacon", false);
-
-  if (esp_reset_reason() == ESP_RST_POWERON) {
-    Serial.println("\n===Power-on reset detected===");
-    currentState = static_cast<DeviceState>(preferences.getUInt(PREF_STATE, FACTORY_NEW));
-
-    if (currentState == FACTORY_NEW) {
-      Serial.println("=== Setup Needed ===");
-      Serial.println("FACTORY NEW DEVICE - Generating seed...");
-      generateDeviceSeed();
-      Serial.println("\n=== IMPORTANT: RECORD THESE VALUES ===");
-      uint8_t macAddr[6];
-      esp_read_mac(macAddr, ESP_MAC_BT);
-      Serial.printf("MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                    macAddr[0], macAddr[1], macAddr[2],
-                    macAddr[3], macAddr[4], macAddr[5]);
-      Serial.printf("Device Seed: 0x%08" PRINTF_UINT32 "\n", deviceSeed);
-      Serial.printf("Batch ID: 0x%04X\n", BATCH_ID);
-      Serial.println("=====================================\n");
-      Serial.println("WARNING: Proceeding directly to normal operation");
-      Serial.println("(Proper setup state management to be implemented)");
-      Serial.println("\nWaiting 5 sec to note values...");
-      delay(5000);  // Give time to note values
-    }
-  }
-
-  // Configure wake-up source
-  uint64_t mask = (1ULL << 9);  // GPIO 9 (BOOT button)
-  esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_LOW);
-
-  // Check for setup mode entry
-  if (checkSetupEntry()) {
-    handleSetupMode();
-  } else {
-    handleNormalOperation();
-  }
-
-  // Enter deep sleep
-  Serial.println("Entering deep sleep");
-  delay(100);  // Allow serial to complete
-  esp_deep_sleep_start();
-}
-
-void loop() {
-  // Never reached - device is in deep sleep
+String getMacAddress(void) {
+  uint8_t mac[6];
+  esp_read_mac(mac, ESP_MAC_IEEE802154);
+  char mac_str[18];
+  snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return String(mac_str);
 }
