@@ -56,8 +56,6 @@ jobs:
       - name: Install Libraries
         run: |
           echo "Installing Neopixel library ..."
-          echo ""
-          clear
           arduino-cli lib install "Adafruit NeoPixel"
 
       ###################
