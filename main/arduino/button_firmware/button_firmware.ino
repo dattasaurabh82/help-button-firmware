@@ -1,14 +1,22 @@
 /**
- * @file    secure_ble_beacon.ino
- * @brief   Secure BLE Emergency Beacon Implementation for ESP32-H2
- * @details Implements a secure rolling code beacon with factory reset 
- *          and normal operation modes and deep sleep modes.
- * @note    ESP32-H2 specific implementation
- * @version 0.0.1
+* @file    secure_ble_beacon.ino
+* @brief   Secure BLE Emergency Beacon Implementation for ESP32-H2
+* @details Implements secure rolling code beacon with factory reset and sleep modes
+* 
+* @author  Saurabh Datta | Datta+Baum Studio
+* @date    2024-12
+* @version 0.0.1
+* @license GPL 3.0
+*
+* @note    Built for ESP32-H2 platform
+* @warning Requires specific hardware configuration
+*
+* @dependencies
+*   - BLE Library
+*   - Adafruit_NeoPixel
+*/
 
- */
-
-/* 
+/**
 * The BLE config defines can be removed since they're in sdkconfig.h
 * So, if furthr optimization needed, do it there. 
  */
@@ -36,9 +44,10 @@
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
 
 /* ========== NOTE ========== */
-// Moved to Macros
-// #define PRODUCT_KEY 0x12345678UL        /**< Product-specific key */
-// #define BATCH_ID 0x0001U                /**< Production batch identifier */
+// * Moved to Macros (config.h)
+// #define PRODUCT_KEY 0xXXX   /**< Product-specific key */
+// #define BATCH_ID 0xXXX      /**< Production batch identifier */
+// * Create a file called config.h by following the config_template.h and for the values themselves, contact the developer :)
 /* ========================== */
 
 #define BOOT_PIN 9            /**< GPIO pin for BOOT button */
@@ -57,7 +66,7 @@ RTC_DATA_ATTR static rtc_data_t rtc_data; /**< Persists across deep sleep */
 BLEAdvertising* pAdvertising = nullptr;   /**< BLE advertising handle */
 
 
-/* ============= Status LED setup ============= */
+/* ====== Status LED setup (DEBUG Only) ======= */
 const uint8_t ledPin = 8;
 Adafruit_NeoPixel led(1, ledPin, NEO_GRB + NEO_KHZ800);
 
@@ -141,30 +150,6 @@ void setup() {
     enterNormalMode();
   }
 }
-
-
-// void setup() {
-//   Serial.begin(115200);
-//   Serial.println(F("\n[INIT] Starting Emergency Beacon..."));
-
-//   // TBD: Disbale othe rfloating pins
-//   // disableUnusedPins();
-
-//   // Configure BOOT button with internal pullup
-//   pinMode(BOOT_PIN, INPUT_PULLUP);
-
-//   // Check if factory reset needed
-//   if (!rtc_data.is_initialized) {
-//     if (esp_reset_reason() == ESP_RST_POWERON) {
-//       Serial.println(F("[ERROR] Factory reset required"));
-//       // esp_deep_sleep_start();
-//       // return;
-//     }
-//     enterFactoryMode();
-//   } else {
-//     enterNormalMode();
-//   }
-// }
 
 
 /**
