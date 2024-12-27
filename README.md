@@ -217,6 +217,9 @@ arduino-cli core update-index
 
 # Install the ESP32 core
 arduino-cli core install esp32:esp32
+
+# Install the Adafruit neopixel library
+arduino-cli lib install "Adafruit NeoPixel"
 ```
 
 ### 2.3. Building and uploading the firmware
@@ -273,7 +276,8 @@ TBD
 
 1. Install the latest Arduino IDE (version 2.3.4 or above) for your platform.
 2. Open the Arduino IDE and navigate to the Board Manager.
-3. Search for "esp32" and install the "esp32 by Espressif" (latest).
+3. From "boards", search for "esp32" and install the "esp32 by Espressif" (latest).
+4. From "libraries", search for "Adafruit Neopixel" and install the latest neopixel library.
 
 #### 3.2. Compile & upload
 
