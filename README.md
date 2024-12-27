@@ -65,8 +65,6 @@ git push -u origin v0.0.x
 # Will create a new tag and a new release
 ```
 
----
-
 ```mermaid
 flowchart TD
    Start([Push Tag v*.*.*]) --> ValidateJob[Validate Job]
@@ -108,7 +106,7 @@ flowchart TD
    style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
 ```
 
-2. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
+1. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
 
 ```mermaid
 flowchart TD
