@@ -65,46 +65,7 @@ git push -u origin v0.0.x
 # Will create a new tag and a new release
 ```
 
-```mermaid
-flowchart TD
-   Start([Push Tag v*.*.*]) --> ValidateJob[Validate Job]
-
-   subgraph ValidateJob[Validate Tag Format]
-       V1[Check tag format]
-   end
-
-   ValidateJob --> ReleaseJob[Release Job]
-
-   subgraph ReleaseJob[Release Process]
-       Config --> Build --> Commit --> Release
-
-       subgraph Config[Configure Environment]
-           C1[Checkout code] --> C2[Install Arduino CLI] --> C3[Install ESP32 core] --> C4[Install Adafrui Neopixel Lib]
-       end
-
-       subgraph Build[Build Firmware]
-           B0[Create & populate a config header file] --> B1[Clean/create binary dir] --> B2[Compile firmware] --> 
-           B3[Verify binary files] --> B4[Rename binary files]
-       end
-
-       subgraph Commit[Commit and Push]
-           CP1[Configure git] --> CP2[Add binary files] --> 
-           CP3[Commit changes] --> CP4[Push to main] --> CP5[Update tag]
-       end
-
-       subgraph Release[Create Release]
-           R1[Create firmware ZIP] --> R2[Generate Release Notes] --> 
-           R3[Create GitHub Release]
-       end
-   end
-
-   ReleaseJob --> End([Release Published])
-
-   style Start fill:#f96,stroke:#333,stroke-width:2px
-   style End fill:#9f9,stroke:#333,stroke-width:2px
-   style ValidateJob fill:#ccf,stroke:#333,stroke-width:2px
-   style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
-```
+[![](https://mermaid.ink/img/pako:eNqNVG1v2jAQ_iuWK03tRDtIoCv5MKmlL2Pqqoh2fGjgg4kvxGpiR45dylD_-xzHKaFDauEDd9w9z735boNjQQEHOMnEKk6JVOjhcsYRQvfKKIdRqMsUPZAlev56Yr7zI3R8_ANNScYoUfBLLKJGRkaZz7gFl3qxlKRI9ztWdNdC5kTNrXf1mfaiUQrxE1LGmLSMwKkjbXHZJCaQASkttRP3prDHLZQihrLcRh8JnrClZb3QLKNWGok8Z6odylGjNn0NjeofLQFd8WcmBc-Bt8qzQVyJQitUdX1eR_GiMS8VyTJ0LqlmXKDR7djZ_Dfb1X3oewYmG1h_C6MkkZqhOxAFe4EM3bLFNvK2fztp2zKjuthrJvMVMcw76V50o5GEal5fUCEKnVUiMSnYVqVAKEiUsMwldGGqM03i3-IatGCcyDWiTDq7Z3qUF8bfgFw8a9gN6kdTkCxZN_gqQOkY-maAnOSwa_uo0nqMkZsm4RRVb_rdaMJea4JLplyTQy86p3RPLu_QfkNvVogvG6dR2K_3RwmUE8abfwfRn8IugnnrH6bvnl4zC6fupj_pNeamtehxHNbhJl50AxxkC4zuhNpbyMRveG6Y-qkX_0ezSe4ku10vy3fF6eF2z_QiY2UKdH7UbKVamwdgb0vVziw4SIannVJJ8QTBge_7Tj5eMarSwCteWjDD7UDDZPhZUPtq1OA4Tj4LbhX3OSzu4BzM8WLU3NRNxTTDKoUcZjgwIiXyaYZn_NX4Ea3E_ZrHOEhIVkIHS6GX6Zum7RO5ZMQ8g_zt34LwRyGMrqSuVRxs8AsOuh28xsFZ98TrnvW875535g1OvcFrB_-1_r0OBsqUkL_re2_P_us_N6bpQA?type=png)](https://mermaid.live/edit#pako:eNqNVG1v2jAQ_iuWK03tRDtIoCv5MKmlL2Pqqoh2fGjgg4kvxGpiR45dylD_-xzHKaFDauEDd9w9z735boNjQQEHOMnEKk6JVOjhcsYRQvfKKIdRqMsUPZAlev56Yr7zI3R8_ANNScYoUfBLLKJGRkaZz7gFl3qxlKRI9ztWdNdC5kTNrXf1mfaiUQrxE1LGmLSMwKkjbXHZJCaQASkttRP3prDHLZQihrLcRh8JnrClZb3QLKNWGok8Z6odylGjNn0NjeofLQFd8WcmBc-Bt8qzQVyJQitUdX1eR_GiMS8VyTJ0LqlmXKDR7djZ_Dfb1X3oewYmG1h_C6MkkZqhOxAFe4EM3bLFNvK2fztp2zKjuthrJvMVMcw76V50o5GEal5fUCEKnVUiMSnYVqVAKEiUsMwldGGqM03i3-IatGCcyDWiTDq7Z3qUF8bfgFw8a9gN6kdTkCxZN_gqQOkY-maAnOSwa_uo0nqMkZsm4RRVb_rdaMJea4JLplyTQy86p3RPLu_QfkNvVogvG6dR2K_3RwmUE8abfwfRn8IugnnrH6bvnl4zC6fupj_pNeamtehxHNbhJl50AxxkC4zuhNpbyMRveG6Y-qkX_0ezSe4ku10vy3fF6eF2z_QiY2UKdH7UbKVamwdgb0vVziw4SIannVJJ8QTBge_7Tj5eMarSwCteWjDD7UDDZPhZUPtq1OA4Tj4LbhX3OSzu4BzM8WLU3NRNxTTDKoUcZjgwIiXyaYZn_NX4Ea3E_ZrHOEhIVkIHS6GX6Zum7RO5ZMQ8g_zt34LwRyGMrqSuVRxs8AsOuh28xsFZ98TrnvW875535g1OvcFrB_-1_r0OBsqUkL_re2_P_us_N6bpQA)
 
 1. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
 
