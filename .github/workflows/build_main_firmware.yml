@@ -69,6 +69,8 @@ jobs:
           echo "// Product configuration" >> config.h
           echo "#define PRODUCT_KEY ${{ secrets.PRODUCT_KEY }}" >> config.h
           echo "#define BATCH_ID ${{ secrets.BATCH_ID }}" >> config.h
+          echo "// Custom BLE manufacturer ID" >> config.h
+          echo "#define MANUFACTURER_ID ${{ secrets.MANUFACTURER_ID }}" >> config.h
           echo " " >> config.h
           echo "#endif" >> config.h
 
