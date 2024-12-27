@@ -65,7 +65,46 @@ git push -u origin v0.0.x
 # Will create a new tag and a new release
 ```
 
-[![](https://mermaid.ink/img/pako:eNqNVFFv2jAQ_iuW-9JOwEhCSMjDpEJp12mbIuh4aODBxA6xSGzkOKUM8d_nOAmEDqkkD9zl_H1393G-PQw5JtCDUcK3YYyEBC8PcwYAmErl3AZ-nsXgBa3A25eOehd3oN3-BmYooRhJ8oMvg9oGylnMmQZn-XIl0Ca-fLCge-QiRXKhTxfPzAhGMQnXQKpg1AgShivSBpcuYkISgjJNXZkXS7hwzBc8JFl2yj7iLKIrzTrMaYK1NeJpSmUzVUUNmvQlNCh_ckHAmL1RwVlKWKM9naRqkecSFKovyixm8MwyiZIE3AucU8bB6OdzFbOOsfHUt0wFE-REepLmrCLdQVD28UhFukVNUPEMVSWqIfY1FKT4Q5aUIbEDmIoy79BU_aQbmhAQ1QQ6cM5iBTMiaLSr8ZECZBVDT4nNUErOY5-VXkoeVMojhkExfx9k9I2G2isqK618M7jH-EItH9BWTa_Gna3qQyO_V8665CBFlNVf7eDPRg-tmstPy6_GJBiVslbuefkTow7X0oLXZ79MNzGDJ8KIaIDBby4vNjKxap4nKr_ny_-z6SLPij1dBc03Zvj2dCfyZUKzmODFXX2D5E4NgN4DhZyJdxMN-q1MCr4m3o1lWZXd3lIsY8_cvDdgirsCDaLBtaDmDS_BYRhdC240dx0WtmBK1KKhWO2_fcE0hzImKZlDT5kYifUcztlBnUO55NMdC6EXoSQjLSh4voqPXq5H5IEiNQbp8esGsVfOlS9FXrrQ28N36Nmm03H6pm27rmP3bLffgjvoGYbb6fct2-kNBq5rDIz-oQX_aoJuxzZdw3GNntG1u45l2S1IMJVc_Cq3t17ih39rNtR2?type=png)](https://mermaid.live/edit#pako:eNqNVFFv2jAQ_iuW-9JOwEhCSMjDpEJp12mbIuh4aODBxA6xSGzkOKUM8d_nOAmEDqkkD9zl_H1393G-PQw5JtCDUcK3YYyEBC8PcwYAmErl3AZ-nsXgBa3A25eOehd3oN3-BmYooRhJ8oMvg9oGylnMmQZn-XIl0Ca-fLCge-QiRXKhTxfPzAhGMQnXQKpg1AgShivSBpcuYkISgjJNXZkXS7hwzBc8JFl2yj7iLKIrzTrMaYK1NeJpSmUzVUUNmvQlNCh_ckHAmL1RwVlKWKM9naRqkecSFKovyixm8MwyiZIE3AucU8bB6OdzFbOOsfHUt0wFE-REepLmrCLdQVD28UhFukVNUPEMVSWqIfY1FKT4Q5aUIbEDmIoy79BU_aQbmhAQ1QQ6cM5iBTMiaLSr8ZECZBVDT4nNUErOY5-VXkoeVMojhkExfx9k9I2G2isqK618M7jH-EItH9BWTa_Gna3qQyO_V8665CBFlNVf7eDPRg-tmstPy6_GJBiVslbuefkTow7X0oLXZ79MNzGDJ8KIaIDBby4vNjKxap4nKr_ny_-z6SLPij1dBc03Zvj2dCfyZUKzmODFXX2D5E4NgN4DhZyJdxMN-q1MCr4m3o1lWZXd3lIsY8_cvDdgirsCDaLBtaDmDS_BYRhdC240dx0WtmBK1KKhWO2_fcE0hzImKZlDT5kYifUcztlBnUO55NMdC6EXoSQjLSh4voqPXq5H5IEiNQbp8esGsVfOlS9FXrrQ28N36Nmm03H6pm27rmP3bLffgjvoGYbb6fct2-kNBq5rDIz-oQX_aoJuxzZdw3GNntG1u45l2S1IMJVc_Cq3t17ih39rNtR2)
+```mermaid
+flowchart TD
+   Start([Push Tag v*.*.*]) --> ValidateJob[Validate Job]
+
+   subgraph ValidateJob[Validate Tag Format]
+       V1[Check tag format]
+   end
+
+   ValidateJob --> ReleaseJob[Release Job]
+
+   subgraph ReleaseJob[Release Process]
+       Config --> Build --> Commit --> Release
+
+       subgraph Config[Configure Environment]
+           C1[Checkout code] --> C2[Install Arduino CLI] --> C3[Install ESP32 core] --> C4[Install Adafrui Neopixel Lib]
+       end
+
+       subgraph Build[Build Firmware]
+           B0[Create & populate a config header file] --> B1[Clean/create binary dir] --> B2[Compile firmware] --> 
+           B3[Verify binary files] --> B4[Rename binary files]
+       end
+
+       subgraph Commit[Commit and Push]
+           CP1[Configure git] --> CP2[Add binary files] --> 
+           CP3[Commit changes] --> CP4[Push to main] --> CP5[Update tag]
+       end
+
+       subgraph Release[Create Release]
+           R1[Create firmware ZIP] --> R2[Generate Release Notes] --> 
+           R3[Create GitHub Release]
+       end
+   end
+
+   ReleaseJob --> End([Release Published])
+
+   style Start fill:#f96,stroke:#333,stroke-width:2px
+   style End fill:#9f9,stroke:#333,stroke-width:2px
+   style ValidateJob fill:#ccf,stroke:#333,stroke-width:2px
+   style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
+```
 
 1. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
 
