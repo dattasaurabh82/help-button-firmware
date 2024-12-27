@@ -307,9 +307,57 @@ TBD
 
 </details>
 
-## Main and test source code files (Pseudo code)
+## Firmware logic
 
-TBD
+```mermaid
+flowchart TD
+   Start([Power On/Wake]) --> Init[Initialize Hardware]
+   Init --> DisablePins[Disable Unused Pins]
+   DisablePins --> SetupLED[Initialize RGB LED]
+   SetupLED --> SetupButton[Setup Boot Button]
+   SetupButton --> CheckMode{Check Mode}
+
+   CheckMode -->|Not Initialized or Power Reset| Factory[Factory Reset Mode]
+   CheckMode -->|Initialized| Normal[Normal Mode]
+   
+   subgraph Factory[Factory Reset Mode]
+       F1[Set LED Red] -->
+       F2[Generate Device Seed] -->
+       F3[Store in RTC Memory] -->
+       F4[Print Debug Info] -->
+       F5{60s Timer/Button Press}
+       F5 -->|Timeout| F6[Mark Initialized]
+       F5 -->|Button Press| F6
+   end
+   
+   subgraph Normal[Normal Mode]
+       N1[Set LED Green] -->
+       N2[Get Seed from RTC] -->
+       N3[Generate Rolling Code] -->
+       N4[Initialize BLE] -->
+       N5[Set Device Name] -->
+       N6[Create Payload] -->
+       N7[Broadcast 10s] -->
+       N8[Increment Counter] -->
+       N9[Set LED Off] -->
+       N10[Configure Wake Sources] -->
+       N11[Enter Deep Sleep]
+   end
+   
+   F6 --> Normal
+   N11 --> Start
+
+   subgraph Legend
+       L1[Standard Process]
+       L2{Decision Point}
+       L3([Start/End])
+   end
+   
+   style Start fill:#f96,stroke:#333,stroke-width:2px
+   style Normal fill:#55f,stroke:#333,stroke-width:2px
+   style Factory fill:#f99,stroke:#333,stroke-width:2px
+   style Legend fill:#fff,stroke:#333,stroke-width:1px
+```
 
 ## License
 
