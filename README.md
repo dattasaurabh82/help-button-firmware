@@ -69,64 +69,43 @@ git push -u origin v0.0.x
 
 ```mermaid
 flowchart TD
-    Start([Push Tag v*.*.* ]) --> ValidateJob[Validate Job]
-    
-    subgraph ValidateJob[Validate Tag Format]
-        V1[Check tag format]
-    end
-    
-    ValidateJob --> ReleaseJob[Release Job]
-    
-    subgraph ReleaseJob[Release Process]
-        subgraph Config[Configure Environment]
-            C1[Checkout code]
-            C2[Install Arduino CLI]
-            C3[Install ESP32 core]
-            C1 --> C2
-            C2 --> C3
-        end
-        
-        subgraph Build[Build Firmware]
-            B1[Clean/create binary dir]
-            B2[Compile firmware]
-            B3[Verify binary files]
-            B4[Rename binary files]
-            B1 --> B2
-            B2 --> B3
-            B3 --> B4
-        end
-        
-        subgraph Commit[Commit and Push]
-            CP1[Configure git]
-            CP2[Add binary files]
-            CP3[Commit changes]
-            CP4[Push to main]
-            CP5[Update tag]
-            CP1 --> CP2
-            CP2 --> CP3
-            CP3 --> CP4
-            CP4 --> CP5
-        end
-        
-        subgraph Release[Create Release]
-            R1[Create firmware ZIP]
-            R2[Generate Release Notes]
-            R3[Create GitHub Release]
-            R1 --> R2
-            R2 --> R3
-        end
-        
-        Config --> Build
-        Build --> Commit
-        Commit --> Release
-    end
-    
-    ReleaseJob --> End([Release Published])
+   Start([Push Tag v*.*.*]) --> ValidateJob[Validate Job]
 
-    style Start fill:#f96,stroke:#333,stroke-width:2px
-    style End fill:#9f9,stroke:#333,stroke-width:2px
-    style ValidateJob fill:#ccf,stroke:#333,stroke-width:2px
-    style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
+   subgraph ValidateJob[Validate Tag Format]
+       V1[Check tag format]
+   end
+
+   ValidateJob --> ReleaseJob[Release Job]
+
+   subgraph ReleaseJob[Release Process]
+       Config --> Build --> Commit --> Release
+
+       subgraph Config[Configure Environment]
+           C1[Checkout code] --> C2[Install Arduino CLI] --> C3[Install ESP32 core]
+       end
+
+       subgraph Build[Build Firmware]
+           B1[Clean/create binary dir] --> B2[Compile firmware] --> 
+           B3[Verify binary files] --> B4[Rename binary files]
+       end
+
+       subgraph Commit[Commit and Push]
+           CP1[Configure git] --> CP2[Add binary files] --> 
+           CP3[Commit changes] --> CP4[Push to main] --> CP5[Update tag]
+       end
+
+       subgraph Release[Create Release]
+           R1[Create firmware ZIP] --> R2[Generate Release Notes] --> 
+           R3[Create GitHub Release]
+       end
+   end
+
+   ReleaseJob --> End([Release Published])
+
+   style Start fill:#f96,stroke:#333,stroke-width:2px
+   style End fill:#9f9,stroke:#333,stroke-width:2px
+   style ValidateJob fill:#ccf,stroke:#333,stroke-width:2px
+   style ReleaseJob fill:#ccf,stroke:#333,stroke-width:2px
 ```
 
 2. If the above step completes successfully, it uses the latest compiled firmware binary to update the firmware flasher website ([custom gh-pages hosting workflow](.github/workflows/pages.yml)) and deploys the Web Flasher interface to GitHub Pages. Thus, it can be triggered manually (takes the last releae tag, automatiocally) or gets trigerred automatically after a successful firmware build.
