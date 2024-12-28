@@ -18,14 +18,11 @@
 
 #include "config.h"  // Imports for shared constants for rolling code generation
 #include "debug.h"   // Debug macros
-// #include "hardware_config.h"  // Hardware configuration
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 #include <esp_system.h>
 #include <esp_sleep.h>
-#include <esp_bt.h>
 #include "esp_mac.h"
-#include <driver/rtc_io.h>
 #include <Adafruit_NeoPixel.h>
 
 /**
