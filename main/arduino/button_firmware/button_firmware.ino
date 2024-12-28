@@ -30,12 +30,6 @@
 
 /* ============= Configuration Constants ============= */
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
-/* ========== NOTE ========== */
-// * Moved to Macros (config.h)
-// #define PRODUCT_KEY 0xXXX   /**< Product-specific key */
-// #define BATCH_ID 0xXXX      /**< Production batch identifier */
-// * Create a file called config.h by following the config_template.h and for the values themselves, contact the developer :)
-/* ========================== */
 #define BOOT_PIN 9               /**< GPIO pin for BOOT button */
 #define BEACON_TIME_MS 10000     /**< Broadcast duration in ms */
 #define FACTORY_WAIT_MS 20000    /**< Factory reset timeout in ms */
