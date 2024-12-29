@@ -13,4 +13,4 @@
 // Custom BLE manufacturer ID - Replace with actual values
 #define MANUFACTURER_ID 0x0000U
 
-#endif
+#endif  // SECRETS_H

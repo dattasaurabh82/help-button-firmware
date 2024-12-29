@@ -1,11 +1,11 @@
 /**
-* @file    debug.h
-* @brief   Debug system for BLE Emergency Beacon
-* @details Handles debug output and serial pin management
+ * @file    debug.h
+ * @brief   Debug system for BLE Emergency Beacon
+ * @details Handles debug output and serial pin management
 */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef DEBUG_LOG_H
+#define DEBUG_LOG_H
 
 /* ============= Debug Configuration ============= */
 #define DEBUG_LEVEL_NONE 0     // No debug output
@@ -21,30 +21,19 @@
 #define SERIAL_RX_PIN 3  // UART0 RX GPIO
 
 
-#if DEBUG_LEVEL == DEBUG_LEVEL_NONE
-// Pull the serial pins to low
-#define DEBUG_INIT() \
-  do { \
-    pinMode(SERIAL_TX_PIN, OUTPUT); \
-    pinMode(SERIAL_RX_PIN, OUTPUT); \
-    digitalWrite(SERIAL_TX_PIN, LOW); \
-    digitalWrite(SERIAL_RX_PIN, LOW); \
-  } while (0)
-#endif
-
 
 
 #if DEBUG_LEVEL == DEBUG_LEVEL_VERBOSE
 /* ============= Debug Messages in PROGMEM ============= */
 // Error Messages
 static const char PROGMEM DBG_RTC_INIT[] = "[RTC] Memory validation failed - initializing";
-static const char PROGMEM DBG_ERR_LED[] = "[ERROR] LED Setup Failed";
+// static const char PROGMEM DBG_ERR_LED[] = "[ERROR] LED Setup Failed";
 static const char PROGMEM DBG_ERR_BLE[] = "[ERROR] BLE Setup Failed";
 static const char PROGMEM DBG_ERR_BLE_NULL[] = "[ERROR] BLE Advertising Object is NULL";
 static const char PROGMEM DBG_ERR_BLE_EXCEPT[] = "[ERROR] BLE Exception: %s\n";
 static const char PROGMEM DBG_ERR_BLE_UNINIT[] = "[ERROR] BLE not initialized";
 static const char PROGMEM DBG_CRIT_BLE[] = "[CRITICAL] BLE Initialization Failed";
-static const char PROGMEM DBG_CRIT_LED[] = "[CRITICAL] LED Initialization Failed";
+// static const char PROGMEM DBG_CRIT_LED[] = "[CRITICAL] LED Initialization Failed";
 static const char PROGMEM DBG_CRIT_STATE[] = "[CRITICAL] Invalid Device State";
 static const char PROGMEM DBG_CRIT_UNKNOWN[] = "[CRITICAL] Unknown Error";
 
@@ -103,22 +92,27 @@ static const char PROGMEM DBG_DEBUG_END[] = "\n==========================";
     delay(100); \
   } while (0)
 
-// Verbose level messages
-#if DEBUG_LEVEL == DEBUG_LEVEL_VERBOSE
 #define DEBUG_VERBOSE(msg) Serial.print(F(msg))
 #define DEBUG_VERBOSE_F(fmt, ...) Serial.printf(F(fmt), __VA_ARGS__)
-#else
-#define DEBUG_VERBOSE(msg)
-#define DEBUG_VERBOSE_F(fmt, ...)
-#endif
 
-#else
+#endif  // DEBUG_LEVEL == DEBUG_LEVEL_VERBOSE
+
+#if DEBUG_LEVEL == DEBUG_LEVEL_NONE
+// Pull the serial pins to low
+#define DEBUG_INIT() \
+  do { \
+    pinMode(SERIAL_TX_PIN, OUTPUT); \
+    pinMode(SERIAL_RX_PIN, OUTPUT); \
+    digitalWrite(SERIAL_TX_PIN, LOW); \
+    digitalWrite(SERIAL_RX_PIN, LOW); \
+  } while (0)
+
 // Debug disabled - all macros are empty
-#define DEBUG_INIT()
 #define DEBUG_DEINIT()
 #define DEBUG_FLUSH()
 #define DEBUG_VERBOSE(msg)
 #define DEBUG_VERBOSE_F(fmt, ...)
-#endif
 
-#endif  // DEBUG_H
+#endif  //  DEBUG_LEVEL == DEBUG_LEVEL_NONE
+
+#endif  // DEBUG_LOG_H

@@ -72,7 +72,7 @@ jobs:
           echo "// Custom BLE manufacturer ID" >> secrets.h
           echo "#define MANUFACTURER_ID ${{ secrets.MANUFACTURER_ID }}" >> secrets.h
           echo " " >> secrets.h
-          echo "#endif" >> secrets.h
+          echo "#endif // SECRETS_H " >> secrets.h
 
       - name: Clean and re-create binary directory
         run: |

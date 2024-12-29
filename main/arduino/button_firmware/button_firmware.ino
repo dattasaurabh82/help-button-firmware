@@ -27,23 +27,20 @@
  * @Options DEBUG_LEVEL_NONE, DEBUG_LEVEL_VERBOSE
 */
 #define DEBUG_LEVEL DEBUG_LEVEL_VERBOSE
-#include "debug.h"
+#include "debug_log.h"
 
 /**
  * @Note Enable/Disable Debug LED (before including led.h)
  * @Options DEBUG_LED_NONE, DEBUG_LED_ENABLE
 */
-#define DEBUG_LED DEBUG_LED_ENABLE
-#include "debug.h"
+#define DEBUG_LED DEBUG_LED_ENABLED
+#include "debug_led.h"
 
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 #include <esp_system.h>
 #include <esp_sleep.h>
 #include <esp_mac.h>
-
-// LED related libs/imports
-#include <Adafruit_NeoPixel.h>
 
 
 
@@ -53,9 +50,6 @@
 #define BOOT_PIN 9                      /**< GPIO pin for BOOT button */
 #define BEACON_TIME_MS 10000            /**< Broadcast duration in ms */
 #define FACTORY_WAIT_MS 20000           /**< Factory reset timeout in ms */
-#define STATUS_LED_PIN 8                /**< GPIO pin for NeoPixel LED */
-#define STATUS_LED_BRIGHTNESS 25        /**< LED brightness (0-255) */
-
 
 
 
@@ -78,7 +72,6 @@ enum class DeviceState {
 enum class ErrorCode {
   NONE = 0,
   BLE_INIT_FAILED,
-  LED_INIT_FAILED,
   INVALID_STATE
 };
 
@@ -99,13 +92,9 @@ typedef struct __attribute__((packed)) {
 
 
 
-
-
 /* ============= Global Variables ============= */
-RTC_DATA_ATTR static rtc_data_t rtc_data;                              /**< Persists across deep sleep */
-static BLEAdvertising* pAdvertising = nullptr;                         /**< BLE advertising handle */
-static Adafruit_NeoPixel led(1, STATUS_LED_PIN, NEO_GRB + NEO_KHZ800); /**< Status LED */
-
+RTC_DATA_ATTR static rtc_data_t rtc_data;      /**< Persists across deep sleep */
+static BLEAdvertising* pAdvertising = nullptr; /**< BLE advertising handle */
 
 
 
@@ -118,8 +107,6 @@ static void handleError(const ErrorCode& error);
 
 
 /* Hardware Control */
-static bool setupLed(void);
-static void setLedColor(const uint8_t& r, const uint8_t& g, const uint8_t& b);
 static void disableUnusedPins(void);
 
 /* Security Functions */
@@ -129,7 +116,6 @@ static uint32_t generateRollingCode(void);
 /* BLE Functions */
 static bool setupBLE(void);
 static void broadcastBeacon(const uint32_t& code);
-
 
 /* Utility Functions */
 static void printDebugInfo(uint32_t code);
@@ -149,11 +135,7 @@ static bool initializeHardware(void) {
   DEBUG_VERBOSE_F(DBG_HW_STATE, static_cast<int>(rtc_data.state));
 
   // Configure status LED
-  if (!setupLed()) {
-    DEBUG_VERBOSE(DBG_ERR_LED);
-    success = false;
-    rtc_data.lastError = ErrorCode::LED_INIT_FAILED;
-  }
+  LED_INIT();
 
   // Configure BOOT button with internal pullup
   pinMode(BOOT_PIN, INPUT_PULLUP);
@@ -246,34 +228,6 @@ static void disableUnusedPins(void) {
     gpio_hold_en(pin);       // Hold pin state during sleep
   }
 }
-
-
-
-/**
- * @brief LED initialization
- * @return bool true if LED initialized successfully
- */
-static bool setupLed(void) {
-  led.begin();
-  led.setBrightness(STATUS_LED_BRIGHTNESS);
-  led.clear();
-  led.show();
-  return true;
-}
-
-
-
-/**
- * @brief Set LED color
- * @param r Red component (0-255)
- * @param g Green component (0-255)
- * @param b Blue component (0-255)
- */
-static void setLedColor(const uint8_t& r, const uint8_t& g, const uint8_t& b) {
-  led.setPixelColor(0, led.Color(r, g, b));
-  led.show();
-}
-
 
 
 
@@ -386,7 +340,7 @@ static void enterFactoryMode(void) {
   DEBUG_VERBOSE(DBG_FACTORY_ENTER);
 
   // LED Status: Factory Mode - Red
-  setLedColor(255, 0, 0);
+  LED_YELLOW();
 
   // Generate and store new seed
   rtc_data.seed = generateSeed();
@@ -475,7 +429,7 @@ static void enterNormalMode(void) {
   DEBUG_VERBOSE(DBG_NORMAL_ENTER);
 
   // LED Status: Active/Normal - Green
-  setLedColor(0, 255, 0);
+  LED_GREEN();
 
   // Core operations:
   // 1. Generate
@@ -501,14 +455,14 @@ static void enterNormalMode(void) {
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;
   esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
   // Turn off LEDs
-  setLedColor(0, 0, 0);  // LED Status: Active/Normal - off
+  LED_OFF();
   // Go to sleep
   esp_deep_sleep_start();
 }
 
 
 
-
+// -- OLD
 // /**
 //  * @brief Broadcasts rolling code over BLE advertisement with custom formatting
 //  * @details Packet structure [9 bytes total]:
@@ -558,7 +512,7 @@ static void enterNormalMode(void) {
 // }
 
 
-
+//  -- NEW
 /**
 * @brief Broadcasts rolling code via BLE advertising
 * @param code 32-bit rolling code to broadcast
@@ -644,9 +598,6 @@ static void handleError(const ErrorCode& error) {
       DEBUG_VERBOSE(DBG_CRIT_BLE);
       DEBUG_VERBOSE_F("[DEBUG] Advertising Pointer: %p\n", pAdvertising);
       break;
-    case ErrorCode::LED_INIT_FAILED:
-      DEBUG_VERBOSE(DBG_CRIT_LED);
-      break;
     case ErrorCode::INVALID_STATE:
       DEBUG_VERBOSE(DBG_CRIT_STATE);
       break;
@@ -657,9 +608,9 @@ static void handleError(const ErrorCode& error) {
 
   // Error indication - Red blink
   for (int i = 0; i < 5; i++) {
-    setLedColor(255, 0, 0);
+    LED_RED();
     delay(100);
-    setLedColor(0, 0, 0);
+    LED_OFF();
     delay(100);
   }
 
