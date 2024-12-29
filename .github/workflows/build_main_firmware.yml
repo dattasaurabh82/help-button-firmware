@@ -61,18 +61,18 @@ jobs:
       ###################
       # Build Firmware
       ###################
-      - name: Create config.h
+      - name: Create secrets.h
         run: |
-          echo "#ifndef CONFIG_H" > config.h
-          echo "#define CONFIG_H" >> config.h
-          echo " " >> config.h
-          echo "// Product configuration" >> config.h
-          echo "#define PRODUCT_KEY ${{ secrets.PRODUCT_KEY }}" >> config.h
-          echo "#define BATCH_ID ${{ secrets.BATCH_ID }}" >> config.h
-          echo "// Custom BLE manufacturer ID" >> config.h
-          echo "#define MANUFACTURER_ID ${{ secrets.MANUFACTURER_ID }}" >> config.h
-          echo " " >> config.h
-          echo "#endif" >> config.h
+          echo "#ifndef SECRETS_H" > secrets.h
+          echo "#define SECRETS_H" >> secrets.h
+          echo " " >> secrets.h
+          echo "// Product configuration" >> secrets.h
+          echo "#define PRODUCT_KEY ${{ secrets.PRODUCT_KEY }}" >> secrets.h
+          echo "#define BATCH_ID ${{ secrets.BATCH_ID }}" >> secrets.h
+          echo "// Custom BLE manufacturer ID" >> secrets.h
+          echo "#define MANUFACTURER_ID ${{ secrets.MANUFACTURER_ID }}" >> secrets.h
+          echo " " >> secrets.h
+          echo "#endif" >> secrets.h
 
       - name: Clean and re-create binary directory
         run: |
