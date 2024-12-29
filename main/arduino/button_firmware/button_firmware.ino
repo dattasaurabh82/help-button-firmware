@@ -11,18 +11,38 @@
  * @target    ESP32-H2
  * @required  ESP32-H2 with configured GPIO pins
  * @dependencies
-*   - BLE Library
-*   - Adafruit_NeoPixel
+ *   - BLE Library
+ *   - Adafruit_NeoPixel
  * @warning   Requires specific hardware configuration
  */
 
 
-#include "config.h"
+/**
+* Imports for shared secrets for rolling code generation
+*/
+#include "secrets.h"
+
+/**
+ * @Note Debug Level Selection (before including debug.h)
+ * @Options DEBUG_LEVEL_NONE, DEBUG_LEVEL_VERBOSE
+*/
+#define DEBUG_LEVEL DEBUG_LEVEL_VERBOSE
+#include "debug.h"
+
+/**
+ * @Note Enable/Disable Debug LED (before including led.h)
+ * @Options DEBUG_LED_NONE, DEBUG_LED_ENABLE
+*/
+#define DEBUG_LED DEBUG_LED_ENABLE
+#include "debug.h"
+
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 #include <esp_system.h>
 #include <esp_sleep.h>
 #include <esp_mac.h>
+
+// LED related libs/imports
 #include <Adafruit_NeoPixel.h>
 
 
@@ -30,11 +50,11 @@
 
 /* ============= Configuration Constants ============= */
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
-#define BOOT_PIN 9               /**< GPIO pin for BOOT button */
-#define BEACON_TIME_MS 10000     /**< Broadcast duration in ms */
-#define FACTORY_WAIT_MS 20000    /**< Factory reset timeout in ms */
-#define STATUS_LED_PIN 8         /**< GPIO pin for NeoPixel LED */
-#define STATUS_LED_BRIGHTNESS 25 /**< LED brightness (0-255) */
+#define BOOT_PIN 9                      /**< GPIO pin for BOOT button */
+#define BEACON_TIME_MS 10000            /**< Broadcast duration in ms */
+#define FACTORY_WAIT_MS 20000           /**< Factory reset timeout in ms */
+#define STATUS_LED_PIN 8                /**< GPIO pin for NeoPixel LED */
+#define STATUS_LED_BRIGHTNESS 25        /**< LED brightness (0-255) */
 
 
 
@@ -99,7 +119,6 @@ static void handleError(const ErrorCode& error);
 
 /* Hardware Control */
 static bool setupLed(void);
-// static void setLedColor(uint8_t r, uint8_t g, uint8_t b);
 static void setLedColor(const uint8_t& r, const uint8_t& g, const uint8_t& b);
 static void disableUnusedPins(void);
 
@@ -118,6 +137,7 @@ static String getMacAddress(void);
 
 
 
+
 /**
  * @brief Hardware initialization
  * @return bool true if all initializations successful, false otherwise
@@ -125,12 +145,12 @@ static String getMacAddress(void);
 static bool initializeHardware(void) {
   bool success = true;
 
-  Serial.println(F("[HARDWARE] Initializing..."));
-  Serial.printf("[HARDWARE] Current State: %d\n", static_cast<int>(rtc_data.state));
+  DEBUG_VERBOSE(DBG_HW_INIT);
+  DEBUG_VERBOSE_F(DBG_HW_STATE, static_cast<int>(rtc_data.state));
 
   // Configure status LED
   if (!setupLed()) {
-    Serial.println(F("[ERROR] LED Setup Failed"));
+    DEBUG_VERBOSE(DBG_ERR_LED);
     success = false;
     rtc_data.lastError = ErrorCode::LED_INIT_FAILED;
   }
@@ -142,14 +162,13 @@ static bool initializeHardware(void) {
   disableUnusedPins();
 
   // ** IMPORTANT: Always try to setup BLE, regardless of state
-  Serial.println(F("[BLE] Attempting to setup"));
   if (!setupBLE()) {
-    Serial.println(F("[ERROR] BLE Setup Failed"));
+    DEBUG_VERBOSE(DBG_ERR_BLE);
     success = false;
     rtc_data.lastError = ErrorCode::BLE_INIT_FAILED;
   }
 
-  Serial.printf("[HARDWARE] Initialization %s\n", success ? "SUCCESS" : "FAILED");
+  DEBUG_VERBOSE_F(DBG_HW_RESULT, success ? "SUCCESS" : "FAILED");
   return success;
 }
 
@@ -160,12 +179,13 @@ static bool initializeHardware(void) {
  * @brief Arduino setup function
  */
 void setup() {
-  Serial.begin(115200);
-  Serial.println(F("\n[INIT] Starting Emergency Beacon..."));
+  DEBUG_INIT();
+  DEBUG_VERBOSE(DBG_INIT);
 
   // Validate RTC memory initialization
   if (rtc_data.magic != RTC_DATA_MAGIC) {
     // First-time or corrupted RTC memory
+    DEBUG_VERBOSE("[RTC] Memory validation failed - initializing");
     memset(&rtc_data, 0, sizeof(rtc_data));
     rtc_data.magic = RTC_DATA_MAGIC;
     rtc_data.state = DeviceState::UNINITIALIZED;
@@ -182,7 +202,7 @@ void setup() {
   // Determine operation mode
   if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
     rtc_data.state = DeviceState::FACTORY_MODE;
-    Serial.println(F("[WARNING] Factory reset required"));
+    DEBUG_VERBOSE(DBG_FACTORY_WARN);
     enterFactoryMode();
   } else {
     rtc_data.state = DeviceState::NORMAL_MODE;
@@ -276,7 +296,7 @@ static void setLedColor(const uint8_t& r, const uint8_t& g, const uint8_t& b) {
 *    - Max: 0x40 * 0.625ms = 40ms
 */
 static bool setupBLE(void) {
-  Serial.println(F("[BLE] Initializing..."));
+  DEBUG_VERBOSE(DBG_BLE_INIT);
 
   // Deinitialize BLE first to ensure clean state
   BLEDevice::deinit(true);
@@ -291,7 +311,7 @@ static bool setupBLE(void) {
     pAdvertising = BLEDevice::getAdvertising();
 
     if (pAdvertising == nullptr) {
-      Serial.println(F("[ERROR] BLE Advertising Object is NULL"));
+      DEBUG_VERBOSE(DBG_ERR_BLE_NULL);
       return false;
     }
 
@@ -299,10 +319,10 @@ static bool setupBLE(void) {
     pAdvertising->setMinInterval(0x20);
     pAdvertising->setMaxInterval(0x40);
 
-    Serial.println(F("[BLE] Setup Complete"));
+    DEBUG_VERBOSE(DBG_BLE_SETUP);
     return true;
   } catch (std::exception& e) {
-    Serial.printf("[ERROR] BLE Exception: %s\n", e.what());
+    DEBUG_VERBOSE_F(DBG_ERR_BLE_EXCEPT, e.what());
     return false;
   }
 }
@@ -363,7 +383,7 @@ static uint32_t generateSeed(void) {
 * @note Factory mode is entered on first boot or uninitialized state
 */
 static void enterFactoryMode(void) {
-  Serial.println(F("\n[FACTORY] Entering Factory Reset Mode"));
+  DEBUG_VERBOSE(DBG_FACTORY_ENTER);
 
   // LED Status: Factory Mode - Red
   setLedColor(255, 0, 0);
@@ -373,15 +393,15 @@ static void enterFactoryMode(void) {
   rtc_data.counter = 0;
 
   // Print device information
-  Serial.printf("[FACTORY] Device MAC: %s\n", getMacAddress().c_str());
-  Serial.printf("[FACTORY] Generated Seed: 0x%08lX\n", rtc_data.seed);
-  Serial.printf("[FACTORY] Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation.\n");
+  DEBUG_VERBOSE_F(DBG_FACTORY_MAC, getMacAddress().c_str());
+  DEBUG_VERBOSE_F(DBG_FACTORY_SEED, rtc_data.seed);
+  DEBUG_VERBOSE(DBG_FACTORY_WAIT);  // msg: "Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation."
 
   // Wait for button press or timeout
   uint32_t start_time = millis();
   while (millis() - start_time < FACTORY_WAIT_MS) {
     if (digitalRead(BOOT_PIN) == LOW) {
-      Serial.println(F("[FACTORY] Button press detected"));
+      DEBUG_VERBOSE(DBG_FACTORY_BTN);
       delay(100);  // Debounce
       break;
     }
@@ -391,11 +411,9 @@ static void enterFactoryMode(void) {
   // Transition to normal operation (steps)
   rtc_data.is_initialized = true;
   rtc_data.state = DeviceState::NORMAL_MODE;
-  Serial.println(F("[FACTORY] Transitioning to Normal Mode"));
-  // Allow serial to flush
-  delay(100);
-  Serial.flush();
-  delay(100);
+
+  DEBUG_VERBOSE(DBG_FACTORY_TRANS);
+  DEBUG_FLUSH();  // Allow serial to flush
 
   enterNormalMode();
 }
@@ -454,35 +472,37 @@ static uint32_t generateRollingCode(void) {
 * @note Device wakes on BOOT_PIN low signal
 */
 static void enterNormalMode(void) {
-  Serial.println(F("\n[NORMAL] Entering Normal Operation Mode"));
+  DEBUG_VERBOSE(DBG_NORMAL_ENTER);
 
   // LED Status: Active/Normal - Green
   setLedColor(0, 255, 0);
 
   // Core operations:
   // 1. Generate
-  // 2. Broadcast Rolling code)
+  // 2. Broadcast Rolling code
+  // 3. Go to Sleep
+
+  // 1. Generate
   uint32_t rolling_code = generateRollingCode();
   printDebugInfo(rolling_code);
+
+  // 2. Broadcast Rolling code
   broadcastBeacon(rolling_code);
 
   rtc_data.counter++;
 
-  // ==== Prepare for sleep ==== //
-  Serial.println(F("[NORMAL] Entering deep sleep"));
+  // 3. Go to sleep
+  DEBUG_VERBOSE(DBG_NORMAL_SLEEP);
 
-  // 1.  Allow serial to flush
-  delay(100);
-  Serial.flush();
-  delay(100);
 
-  // 2.  Configure wakeup on GPIO
+  DEBUG_FLUSH();   // Allow serial to flush
+  DEBUG_DEINIT();  // Kill Serial
+  // Configure wakeup on GPIO
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;
   esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
-
-  // LED Status: Active/Normal - off
-  setLedColor(0, 0, 0);
-
+  // Turn off LEDs
+  setLedColor(0, 0, 0);  // LED Status: Active/Normal - off
+  // Go to sleep
   esp_deep_sleep_start();
 }
 
@@ -497,7 +517,7 @@ static void enterNormalMode(void) {
 //  *   - Length: Payload length [1B]
 //  *   - Payload: Rolling code [4B]
 //  *   - CRC: Checksum [1B]
-//  * 
+//  *
 //  * @param code 32-bit rolling code to broadcast
 //  */
 // static void broadcastBeacon(const uint32_t& code) {
@@ -552,7 +572,7 @@ static void enterNormalMode(void) {
 static void broadcastBeacon(const uint32_t& code) {
   // Check BLE initialization
   if (!pAdvertising) {
-    Serial.println(F("[ERROR] BLE not initialized"));
+    DEBUG_VERBOSE(DBG_ERR_BLE_UNINIT);
     return;
   }
 
@@ -563,6 +583,13 @@ static void broadcastBeacon(const uint32_t& code) {
   payload[2] = (code >> 8) & 0xFF;
   payload[3] = code & 0xFF;
 
+  // Optional: Debug stuff
+  DEBUG_VERBOSE("\n[BLE] Rolling Code Bytes:");
+  DEBUG_VERBOSE_F("\n      [0]: 0x%02X", payload[0]);
+  DEBUG_VERBOSE_F("\n      [1]: 0x%02X", payload[1]);
+  DEBUG_VERBOSE_F("\n      [2]: 0x%02X", payload[2]);
+  DEBUG_VERBOSE_F("\n      [3]: 0x%02X", payload[3]);
+
   // Create advertisement data
   BLEAdvertisementData advData;
   advData.setName(PRODUCT_NAME);
@@ -571,9 +598,21 @@ static void broadcastBeacon(const uint32_t& code) {
     data += (char)payload[i];  // Convert bytes to chars
   }
   advData.setManufacturerData(data);  // Set payload
+
+  // Optional: Debug stuff
+  DEBUG_VERBOSE("\n[BLE] Complete Adv Packet:");
+  DEBUG_VERBOSE_F("\n      Name: %s", PRODUCT_NAME);
+  DEBUG_VERBOSE("\n      Data: ");
+  for (int i = 0; i < data.length(); i++) {
+    DEBUG_VERBOSE_F("0x%02X ", (uint8_t)data[i]);
+  }
+  DEBUG_VERBOSE("\n");
+
   pAdvertising->setAdvertisementData(advData);
 
   // Start advertising for specified duration
+  DEBUG_VERBOSE_F(DBG_BLE_BROADCAST_WARN, static_cast<int>(BEACON_TIME_MS / 1000));
+
   pAdvertising->start();
   delay(BEACON_TIME_MS);
   pAdvertising->stop();
@@ -602,18 +641,18 @@ static void handleError(const ErrorCode& error) {
   // Detailed error logging
   switch (error) {
     case ErrorCode::BLE_INIT_FAILED:
-      Serial.println(F("[CRITICAL] BLE Initialization Failed"));
-      Serial.print(F("[DEBUG] Advertising Pointer: "));
-      Serial.println(reinterpret_cast<uintptr_t>(pAdvertising));
+      DEBUG_VERBOSE(DBG_CRIT_BLE);
+      DEBUG_VERBOSE_F("[DEBUG] Advertising Pointer: %p\n", pAdvertising);
       break;
     case ErrorCode::LED_INIT_FAILED:
-      Serial.println(F("[CRITICAL] LED Initialization Failed"));
+      DEBUG_VERBOSE(DBG_CRIT_LED);
       break;
     case ErrorCode::INVALID_STATE:
-      Serial.println(F("[CRITICAL] Invalid Device State"));
+      DEBUG_VERBOSE(DBG_CRIT_STATE);
       break;
     default:
-      Serial.println(F("[CRITICAL] Unknown Error"));
+      DEBUG_VERBOSE(DBG_CRIT_UNKNOWN);
+      break;
   }
 
   // Error indication - Red blink
@@ -623,6 +662,8 @@ static void handleError(const ErrorCode& error) {
     setLedColor(0, 0, 0);
     delay(100);
   }
+
+  DEBUG_FLUSH();
 
   // ** Optional: Soft reset
   ESP.restart();
@@ -635,13 +676,13 @@ static void handleError(const ErrorCode& error) {
  * @param code Current rolling code value
  */
 static void printDebugInfo(uint32_t code) {
-  Serial.println(F("\n=== Debug Information ==="));
-  Serial.printf("MAC Address: %s\n", getMacAddress().c_str());
-  Serial.printf("Product Key: 0x%08lX\n", PRODUCT_KEY);
-  Serial.printf("Batch ID: 0x%04X\n", BATCH_ID);
-  Serial.printf("Current Seed: 0x%08lX\n", rtc_data.seed);
-  Serial.printf("Counter: %lu\n", rtc_data.counter);
-  Serial.printf("Rolling Code: 0x%08lX\n", code);
-  Serial.printf("Algorithm: Mixed-bit with time seed\n");
-  Serial.println(F("=======================\n"));
+  DEBUG_VERBOSE(DBG_DEBUG_START);  // Change from VERBOSE to INFO
+  DEBUG_VERBOSE_F(DBG_DEBUG_MAC, getMacAddress().c_str());
+  DEBUG_VERBOSE_F(DBG_DEBUG_KEY, PRODUCT_KEY);
+  DEBUG_VERBOSE_F(DBG_DEBUG_BATCH, BATCH_ID);
+  DEBUG_VERBOSE_F(DBG_DEBUG_SEED, rtc_data.seed);
+  DEBUG_VERBOSE_F(DBG_DEBUG_COUNTER, rtc_data.counter);
+  DEBUG_VERBOSE_F(DBG_DEBUG_ROLLING_CODE, code);
+  DEBUG_VERBOSE(DBG_DEBUG_ALGO);
+  DEBUG_VERBOSE(DBG_DEBUG_END);
 }
