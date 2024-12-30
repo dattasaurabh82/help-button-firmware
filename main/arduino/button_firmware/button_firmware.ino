@@ -40,14 +40,19 @@
 #include <BLEAdvertising.h>
 #include <esp_system.h>
 #include <esp_sleep.h>
+#include <esp_pm.h>
 #include <esp_mac.h>
 
+// TBT - remove - getting warning ; "no longer used in future ..."
+#include "driver/periph_ctrl.h"
 
+#include "driver/rtc_io.h"
+#include "soc/rtc.h"
 
 
 /* ============= Configuration Constants ============= */
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
-#define BOOT_PIN 9                      /**< GPIO pin for BOOT button */
+#define BOOT_PIN GPIO_NUM_9             /**< GPIO pin for BOOT button: gpio_num_t type, not a simple int */
 #define BEACON_TIME_MS 10000            /**< Broadcast duration in ms */
 #define FACTORY_WAIT_MS 20000           /**< Factory reset timeout in ms */
 
@@ -105,9 +110,10 @@ static void enterFactoryMode(void);
 static void enterNormalMode(void);
 static void handleError(const ErrorCode& error);
 
-
 /* Hardware Control */
+static void powerDownDomains(void);  // NEW
 static void disableUnusedPins(void);
+static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin);  // NEW
 
 /* Security Functions */
 static uint32_t generateSeed(void);
@@ -120,6 +126,118 @@ static void broadcastBeacon(const uint32_t& code);
 /* Utility Functions */
 static void printDebugInfo(uint32_t code);
 static String getMacAddress(void);
+static void optimizeClocks(void);  // NEW
+
+
+
+
+/**
+* @brief Configure deep sleep wakeup on specified GPIO using EXT1 (ESP32-H2)
+* @param wakeup_pin RTC-capable GPIO to use as wakeup source (GPIOs 0-10)
+* @return bool true if wakeup configured successfully, false on any error
+*/
+static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin) {
+  DEBUG_VERBOSE("\n[DEEP SLEEP] Configuring wakeup...");
+  // Create bitmask for the provided pin
+  const uint64_t ext_wakeup_pin_1_mask = 1ULL << wakeup_pin;
+  // Configure EXT1 wakeup
+  esp_err_t result = esp_sleep_enable_ext1_wakeup_io(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  switch (result) {
+    case ESP_OK:
+      DEBUG_VERBOSE_F("\n[DEEP SLEEP] Wakeup configuration successful for GPIO%d", wakeup_pin);
+      return true;
+    case ESP_ERR_INVALID_ARG:
+      DEBUG_VERBOSE_F("\n[ERROR] Invalid argument - GPIO%d might not be RTC capable", wakeup_pin);
+      return false;
+    case ESP_ERR_NOT_ALLOWED:
+      DEBUG_VERBOSE_F("\n[ERROR] Operation not allowed for GPIO%d", wakeup_pin);
+      return false;
+    default:
+      DEBUG_VERBOSE_F("\n[ERROR] Unknown error: %d for GPIO%d", result, wakeup_pin);
+      return false;
+  }
+}
+
+
+
+
+/**
+ * @brief Optimize power consumption by disabling unused peripherals and configuring clocks
+ * @details Disables various ESP32-H2 peripherals and their associated GPIOs:
+ *          1. Basic Peripherals:
+ *             - LEDC: LED PWM (GPIOs 2-5) ~0.3mA
+ *             - MCPWM0: Motor Control (GPIOs 15-20) ~0.5mA
+ *             - PCNT: Pulse Counter (GPIOs 10-13) ~0.1mA
+ *          
+ *          2. Additional Peripherals:
+ *             - RMT: Remote Control (GPIOs 0,1,2) ~0.2mA
+ *             - SARADC: ADC Controller (GPIO 0-6 analog channels) ~0.5mA
+ *             - SYSTIMER: No dedicated GPIOs, internal timer ~0.1mA
+ *             - UART1: Secondary UART (GPIO 10-TX, 11-RX) ~0.3mA
+ *             - SPI2: SPI Interface (MISO-12, MOSI-13, CLK-14, CS-15) ~0.4mA
+ *             - I2C0: I2C Interface (SDA-16, SCL-17) ~0.2mA
+ * 
+ * @note 1. CPU frequency is locked at 96MHz when BLE is active
+ * @note 2. UART0 should not be disabled if using Serial debug
+ * @note 3. BT module should not be disabled if quick BLE restart needed
+ * @note 4. Can't disable TIMG0/1: Timer Groups as they are used for RTC and other things ...
+ */
+static void optimizeClocks(void) {
+  DEBUG_VERBOSE("\n[POWER] ----------------------");
+  DEBUG_VERBOSE("\n[POWER] Starting peripheral disable...");
+
+  uint32_t initial_freq = getCpuFrequencyMhz();
+  DEBUG_VERBOSE_F("\n[POWER] Initial CPU Frequency: %d MHz", initial_freq);
+
+  // Set CPU frequency to minimum required
+  setCpuFrequencyMhz(80);
+  // - Lower frequency = lower power consumption: ~50% power reduction compared to 160MHz (Default usually)
+  // - Still maintains BLE functionality at 80MHz. Going below 80MHz would make BLE unstable
+  // - Check if frequency set correctly
+  uint32_t new_freq = getCpuFrequencyMhz();
+  // -- TBT
+  // ** Note: The ESP32-H2 seems to be locked at 96MHz for BLE operation
+  if (new_freq != 80) {
+    DEBUG_VERBOSE_F("\n[POWER] WARNING: CPU Frequency set to %d MHz instead of 80 MHz", new_freq);
+  } else {
+    DEBUG_VERBOSE("\n[POWER] CPU Frequency set successfully to 80 MHz");
+  }
+
+  // -- TBT
+  // ** Note: Configure XTAL frequency for BLE but clock functions are not directly accessible in Arduino framework
+  // ** Note: ESP32-H2 uses different clock configuration compared to other ESP32s
+  // rtc_xtal_freq_t current_freq = rtc_clk_xtal_freq_get();
+  // if (current_freq != RTC_XTAL_FREQ_32M) {
+  //   rtc_clk_xtal_freq_set(RTC_XTAL_FREQ_32M);
+  // }
+
+
+  // For ESP32-H2, use correct module definitions
+#ifdef CONFIG_IDF_TARGET_ESP32H2
+  periph_module_disable(PERIPH_LEDC_MODULE);    // Disable unused peripherals (LED PWM module)
+  periph_module_disable(PERIPH_MCPWM0_MODULE);  // Disable unused peripherals (Motor Control PWM )
+  periph_module_disable(PERIPH_PCNT_MODULE);    // Disable unused peripherals (Pulse Counter)
+
+  // Additional peripherals that can be disabled
+  // periph_module_disable(PERIPH_RMT_MODULE);  // Remote Control
+  periph_module_disable(PERIPH_SARADC_MODULE);    // ADC
+  periph_module_disable(PERIPH_SYSTIMER_MODULE);  // System Timer
+  // -- NEW -- //
+  esp_timer_early_init();  // InitESP timer early with minimal config, needed for stat LED blinks
+  // --------- //
+  periph_module_disable(PERIPH_UART1_MODULE);  // UART1
+  periph_module_disable(PERIPH_SPI2_MODULE);   // SPI2
+  periph_module_disable(PERIPH_I2C0_MODULE);   // I2C0
+#endif
+
+
+  DEBUG_VERBOSE("\n[POWER] Peripherals disabled: LEDC, MCPWM0, PCNT, RMT, SARADC, TIMERS, UART1, SPI2, I2C0");
+  // TBD - DEBUG_VERBOSE("\n[POWER] XTAL frequency configured for BLE");
+  DEBUG_VERBOSE("\n[POWER] EST. total power savings: ~3.0mA");
+  DEBUG_VERBOSE("\n[POWER] ----------------------");
+}
+
 
 
 
@@ -137,8 +255,22 @@ static bool initializeHardware(void) {
   // Configure status LED
   LED_INIT();
 
+  // Add clock optimization here - before BLE init but after basic setup
+  optimizeClocks();
+
+  // -- OLD
   // Configure BOOT button with internal pullup
-  pinMode(BOOT_PIN, INPUT_PULLUP);
+  // pinMode(BOOT_PIN, INPUT_PULLUP);
+  // -- NEW
+  // Native ESP-IDF configuration for input with pull-up
+  gpio_config_t io_conf = {
+    .pin_bit_mask = (1ULL << BOOT_PIN),
+    .mode = GPIO_MODE_INPUT,
+    .pull_up_en = GPIO_PULLUP_ENABLE,
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE
+  };
+  gpio_config(&io_conf);
 
   // Disable unused pins
   disableUnusedPins();
@@ -182,7 +314,10 @@ void setup() {
   }
 
   // Determine operation mode
-  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
+  // -- OLD
+  // if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
+  // -- NEW
+  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && gpio_get_level(BOOT_PIN) == 0)) {
     rtc_data.state = DeviceState::FACTORY_MODE;
     DEBUG_VERBOSE(DBG_FACTORY_WARN);
     enterFactoryMode();
@@ -210,8 +345,27 @@ void loop() {
 static void disableUnusedPins(void) {
   // Array of GPIO pins to be disabled
   const gpio_num_t unusedPins[] = {
-    GPIO_NUM_2, GPIO_NUM_3, GPIO_NUM_4, GPIO_NUM_5,
-    GPIO_NUM_6, GPIO_NUM_7, GPIO_NUM_11, GPIO_NUM_12
+    // GPIO_NUM_1,  // This is TX pin (Serial/UART TX): we are pulling them low in debug_log.h, if serial is not used
+    GPIO_NUM_2,  // No connection on devkit
+    // GPIO_NUM_3,  // This is RX pin (Serial/UART RX): we are pulling them low in debug_log.h, if serial is not used
+
+    // -- OPTIONAL - can be disabled if JTAG debug not needed -- //
+    GPIO_NUM_4,  // JTAG pins TMS
+    GPIO_NUM_5,  // JTAG pins TDI
+    GPIO_NUM_6,  // JTAG pins TCK
+    GPIO_NUM_7,  // JTAG pins TDO
+    // --------------------------------------------------------- //
+    GPIO_NUM_10,  // No critical function
+    GPIO_NUM_11,  // No critical function
+    GPIO_NUM_12,  // No critical function
+    GPIO_NUM_13   // No critical function
+
+    // ** Note: DO NOT DISABLE - System critical GPIOs (GPIO_NUM_14 - GPIO_NUM_21), reserved for internal functions
+    // These pins are connected to:
+    // - Internal flash interface
+    // - System memory interface
+    // - Core functionality
+    // Pulling these low causes system instability and resets
   };
 
   for (gpio_num_t pin : unusedPins) {
@@ -226,6 +380,8 @@ static void disableUnusedPins(void) {
     gpio_config(&io_conf);   // Apply configuration
     gpio_set_level(pin, 0);  // Set pin low
     gpio_hold_en(pin);       // Hold pin state during sleep
+    // TBD
+    // rtc_gpio_isolate(pin);   // Isolate GPIO during deep sleep
   }
 }
 
@@ -255,12 +411,22 @@ static bool setupBLE(void) {
   // Deinitialize BLE first to ensure clean state
   BLEDevice::deinit(true);
 
-  // Try to initialize
+  // ** Get default config
+  // esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+  // ** Keep the defaults for now as they're optimized for low power
+  // *** Note: TBD Maybe revisit
+
   try {
     BLEDevice::init(PRODUCT_NAME);
 
-    // Set minimum TX power for 2m range
-    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);  // -12dBm
+    // TBT
+    // -- OLD
+    // // Set minimum TX power for 2m range
+    // esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);  // -12dBm
+    // -- NEW
+    // Set minimum transmit power for advertising and scanning
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);   // -12dBm
+    esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_N12);  // -12dBm
 
     pAdvertising = BLEDevice::getAdvertising();
 
@@ -269,9 +435,10 @@ static bool setupBLE(void) {
       return false;
     }
 
+    // Optimize advertising parameters for power saving
     pAdvertising->setScanResponse(false);
-    pAdvertising->setMinInterval(0x20);
-    pAdvertising->setMaxInterval(0x40);
+    pAdvertising->setMinInterval(0x40);  // 40ms * 0.625ms = 25ms
+    pAdvertising->setMaxInterval(0x80);  // 80ms * 0.625ms = 50ms
 
     DEBUG_VERBOSE(DBG_BLE_SETUP);
     return true;
@@ -280,6 +447,7 @@ static bool setupBLE(void) {
     return false;
   }
 }
+
 
 
 
@@ -337,10 +505,11 @@ static uint32_t generateSeed(void) {
 * @note Factory mode is entered on first boot or uninitialized state
 */
 static void enterFactoryMode(void) {
-  DEBUG_VERBOSE(DBG_FACTORY_ENTER);
-
-  // LED Status: Factory Mode - Red
+  // LED Status: Factory Mode - Yellow
   LED_YELLOW();
+  blinkYellow(250);
+
+  DEBUG_VERBOSE(DBG_FACTORY_ENTER);
 
   // Generate and store new seed
   rtc_data.seed = generateSeed();
@@ -354,7 +523,10 @@ static void enterFactoryMode(void) {
   // Wait for button press or timeout
   uint32_t start_time = millis();
   while (millis() - start_time < FACTORY_WAIT_MS) {
-    if (digitalRead(BOOT_PIN) == LOW) {
+    // -- OLD
+    // if (digitalRead(BOOT_PIN) == LOW) {
+    // -- NEW
+    if (gpio_get_level(BOOT_PIN) == 0) {
       DEBUG_VERBOSE(DBG_FACTORY_BTN);
       delay(100);  // Debounce
       break;
@@ -368,6 +540,7 @@ static void enterFactoryMode(void) {
 
   DEBUG_VERBOSE(DBG_FACTORY_TRANS);
   DEBUG_FLUSH();  // Allow serial to flush
+  LED_OFF();      // Turn off LEDs
 
   enterNormalMode();
 }
@@ -406,7 +579,6 @@ static uint32_t generateRollingCode(void) {
 
 
 
-
 /**
 * @brief Handles normal operation mode of the device
 * @details Operation sequence:
@@ -426,10 +598,11 @@ static uint32_t generateRollingCode(void) {
 * @note Device wakes on BOOT_PIN low signal
 */
 static void enterNormalMode(void) {
-  DEBUG_VERBOSE(DBG_NORMAL_ENTER);
-
   // LED Status: Active/Normal - Green
   LED_GREEN();
+  blinkGreen(1000);
+
+  DEBUG_VERBOSE(DBG_NORMAL_ENTER);
 
   // Core operations:
   // 1. Generate
@@ -445,24 +618,42 @@ static void enterNormalMode(void) {
 
   rtc_data.counter++;
 
-  // 3. Go to sleep
+  // 3. Prep to sleep ...
   DEBUG_VERBOSE(DBG_NORMAL_SLEEP);
 
+  // Configure wakeup on GPIO ...
+  // -- OLD | Method 1: ext1 Wakeup (Multiple Pins): Can wake up on MULTIPLE GPIO pins simultaneously & offers more complex wakeup conditions and is the only was ESP32-H2 can wake up from deep sleep
+  // const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;  // GPIO-9
+  // esp_sleep_enable_ext1_wakeup_io(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  // // or -- NEW | with better error checks
+  // -- WIP
+  // setupDeepSleepWakeup();
+  if (!setupDeepSleepWakeup(BOOT_PIN)) {
+    DEBUG_VERBOSE("\n[ERROR] Deep sleep wakeup configuration failed ❌");
+    DEBUG_VERBOSE("\n[ERROR] So, will not go to sleep (exiting function ...) 😳");
+    return;
+  }
+  DEBUG_VERBOSE("\n[WARNING] Will go to sleep as we could setup wakeup pin. 🥱");
 
   DEBUG_FLUSH();   // Allow serial to flush
-  DEBUG_DEINIT();  // Kill Serial
-  // Configure wakeup on GPIO
-  const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;
-  esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
-  // Turn off LEDs
-  LED_OFF();
+  DEBUG_DEINIT();  // Kill Serial / Deinitilaize Serial
+  LED_OFF();       // Turn off LEDs
+
+  // -- TBD Turn off Neopixel LED pin
+
+  // -- TBT
+  // Problem: - The system is restarting instead of properly waking from deep sleep when these power domains are configured
+  // Solution: - No explicit power domain configuration. Let ESP-IDF handle the power domains automatically for stable wake-up
+  powerDownDomains();
+
   // Go to sleep
   esp_deep_sleep_start();
 }
 
 
 
-// -- OLD
+
 // /**
 //  * @brief Broadcasts rolling code over BLE advertisement with custom formatting
 //  * @details Packet structure [9 bytes total]:
@@ -474,6 +665,7 @@ static void enterNormalMode(void) {
 //  *
 //  * @param code 32-bit rolling code to broadcast
 //  */
+// -- OLD
 // static void broadcastBeacon(const uint32_t& code) {
 //   if (!pAdvertising) {
 //     handleError(ErrorCode::BLE_INIT_FAILED);
@@ -516,8 +708,13 @@ static void enterNormalMode(void) {
 /**
 * @brief Broadcasts rolling code via BLE advertising
 * @param code 32-bit rolling code to broadcast
-* 
-* Function flow:
+* @details Packet structure [9 bytes total]:
+*   - Header: MANUFACTURER_ID [2B]
+*   - Type: Rolling code identifier [1B]
+*   - Length: Payload length [1B]
+*   - Payload: Rolling code [4B]
+*   - CRC: Checksum [1B]
+* @flow:
 * 1. Validates BLE initialization
 * 2. Splits 32-bit code into 4 bytes
 * 3. Creates BLE advertisement payload
@@ -570,6 +767,60 @@ static void broadcastBeacon(const uint32_t& code) {
   pAdvertising->start();
   delay(BEACON_TIME_MS);
   pAdvertising->stop();
+}
+
+
+
+
+/**
+ * @brief Power down domains - ESP32-H2 specific - handles how esp32 wakes up from sleep - wake up of int stacks sequece
+ * @note [TBD] The system is restarting instead of properly waking from deep sleep when these power domains are configured 
+*/
+static void powerDownDomains(void) {
+  // ** TBT: these are err_states . try checking why they are causing errors?
+
+  // Power down domains - ESP32-H2 specific
+  // -- Core Clock Domains -- //
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_RC_FAST, ESP_PD_OPTION_OFF);  // ..._AUTO, ..._OFF
+  // Fast RC Oscillator (20MHz)
+  // - Used for quick CPU startup
+  // - Turning OFF saves power but increases wake-up time
+  // - Less accurate than XTAL
+
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_XTAL32K, ESP_PD_OPTION_OFF);
+  // External 32KHz Crystal
+  // - Used for real-time keeping
+  // - Low power, high accuracy timing
+  // - Important for timed wake-ups
+  // - Not available on ESP32-H2 (will cause compile error)
+
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_XTAL, ESP_PD_OPTION_OFF);  // ..._AUTO, ..._OFF
+  // Main Crystal Oscillator (32MHz)
+  // - Primary high-precision clock
+  // - Used for BLE and precise timing
+  // - Turning OFF saves significant power but increases wake-up time
+  // - Required for BLE operation
+
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_RC32K, ESP_PD_OPTION_OFF);
+  // Internal 32KHz RC Oscillator
+  // - Backup low-power clock
+  // - Less accurate than XTAL32K
+  // - Not available on ESP32-H2 (will cause compile error)
+
+  // -- Function Domains -- //
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_CPU, ESP_PD_OPTION_OFF);
+  // CPU Core
+  // - Main processor
+  // - Must be OFF during deep sleep
+  // - Automatically managed by sleep functions
+
+  // -- TBT / Maybe not
+  // esp_sleep_pd_config(ESP_PD_DOMAIN_BT, ESP_PD_OPTION_OFF);
+  // Bluetooth Subsystem
+  // - Controls BLE radio
+  // - Keep ON if you need fast BLE startup
+  // - Significant power impact
+  // - ** Don't disable BT domain if you need quick BLE startup
 }
 
 

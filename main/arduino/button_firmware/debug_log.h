@@ -1,5 +1,5 @@
 /**
- * @file    debug.h
+ * @file    debug_log.h
  * @brief   Debug system for BLE Emergency Beacon
  * @details Handles debug output and serial pin management
 */
@@ -26,16 +26,16 @@
 #if DEBUG_LEVEL == DEBUG_LEVEL_VERBOSE
 /* ============= Debug Messages in PROGMEM ============= */
 // Error Messages
-static const char PROGMEM DBG_RTC_INIT[] = "[RTC] Memory validation failed - initializing";
+static const char PROGMEM DBG_RTC_INIT[] = "[RTC] Memory validation failed - initializing ❌";
 // static const char PROGMEM DBG_ERR_LED[] = "[ERROR] LED Setup Failed";
-static const char PROGMEM DBG_ERR_BLE[] = "[ERROR] BLE Setup Failed";
+static const char PROGMEM DBG_ERR_BLE[] = "[ERROR] BLE Setup Failed ❌";
 static const char PROGMEM DBG_ERR_BLE_NULL[] = "[ERROR] BLE Advertising Object is NULL";
 static const char PROGMEM DBG_ERR_BLE_EXCEPT[] = "[ERROR] BLE Exception: %s\n";
-static const char PROGMEM DBG_ERR_BLE_UNINIT[] = "[ERROR] BLE not initialized";
-static const char PROGMEM DBG_CRIT_BLE[] = "[CRITICAL] BLE Initialization Failed";
+static const char PROGMEM DBG_ERR_BLE_UNINIT[] = "[ERROR] BLE not initialized ❌";
+static const char PROGMEM DBG_CRIT_BLE[] = "[CRITICAL] BLE Initialization Failed 😞";
 // static const char PROGMEM DBG_CRIT_LED[] = "[CRITICAL] LED Initialization Failed";
-static const char PROGMEM DBG_CRIT_STATE[] = "[CRITICAL] Invalid Device State";
-static const char PROGMEM DBG_CRIT_UNKNOWN[] = "[CRITICAL] Unknown Error";
+static const char PROGMEM DBG_CRIT_STATE[] = "[CRITICAL] Invalid Device State 🤔";
+static const char PROGMEM DBG_CRIT_UNKNOWN[] = "[CRITICAL] Unknown Error 🤔";
 
 // Info Messages
 static const char PROGMEM DBG_INIT[] = "\n[INIT] Starting Emergency Beacon...";
@@ -44,17 +44,17 @@ static const char PROGMEM DBG_HW_STATE[] = "\n[HARDWARE] Current State: %d";
 static const char PROGMEM DBG_HW_RESULT[] = "\n[HARDWARE] Initialization %s";
 static const char PROGMEM DBG_BLE_INIT[] = "\n[BLE] Initializing...";
 static const char PROGMEM DBG_BLE_ATTEMPT[] = "\n[BLE] Attempting setup...";
-static const char PROGMEM DBG_BLE_SETUP[] = "\n[BLE] Setup Complete";
-static const char PROGMEM DBG_BLE_BROADCAST_WARN[] = "\n[BLE] Broadcasting beacon for: %d secs ...";
-static const char PROGMEM DBG_FACTORY_WARN[] = "\n[WARNING] Factory reset required";
-static const char PROGMEM DBG_FACTORY_ENTER[] = "\n[FACTORY] Entering Factory Reset Mode";
+static const char PROGMEM DBG_BLE_SETUP[] = "\n[BLE] Setup Complete 👏🏼";
+static const char PROGMEM DBG_BLE_BROADCAST_WARN[] = "\n[BLE] Broadcasting beacon for: %d secs 📲 ...";
+static const char PROGMEM DBG_FACTORY_WARN[] = "\n[WARNING] Factory reset required 🛠️";
+static const char PROGMEM DBG_FACTORY_ENTER[] = "\n[FACTORY] Entering Factory Reset Mode 🛠️";
 static const char PROGMEM DBG_FACTORY_MAC[] = "\n[FACTORY] Device MAC: %s";
 static const char PROGMEM DBG_FACTORY_SEED[] = "\n[FACTORY] Generated Seed: 0x%08lX";
 static const char PROGMEM DBG_FACTORY_WAIT[] = "\n[FACTORY] Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation.";
-static const char PROGMEM DBG_FACTORY_BTN[] = "\n[FACTORY] Button press detected";
-static const char PROGMEM DBG_FACTORY_TRANS[] = "\n[FACTORY] Transitioning to Normal Mode";
-static const char PROGMEM DBG_NORMAL_ENTER[] = "\n\n[NORMAL] Entering Normal Operation Mode";
-static const char PROGMEM DBG_NORMAL_SLEEP[] = "\n[NORMAL] Entering deep sleep";
+static const char PROGMEM DBG_FACTORY_BTN[] = "\n[FACTORY] Button press detected 👈🏼";
+static const char PROGMEM DBG_FACTORY_TRANS[] = "\n[FACTORY] Transitioning to Normal Mode ...";
+static const char PROGMEM DBG_NORMAL_ENTER[] = "\n\n[NORMAL] Entering Normal Operation Mode ...";
+static const char PROGMEM DBG_NORMAL_SLEEP[] = "\n[NORMAL] Entering deep sleep ...";
 
 // Debug Info Messages
 static const char PROGMEM DBG_DEBUG_START[] = "\n=== Debug Information ===";
