@@ -53,21 +53,21 @@ static void setLedColor(const uint8_t& r, const uint8_t& g, const uint8_t& b) {
  * @param interval Blink interval in milliseconds
  */
 static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) {
-  static uint64_t lastBlinkTime = 0;
-  uint64_t currentTime = esp_timer_get_time() / 1000;  // Convert to milliseconds
+  static uint32_t lastBlinkTime = 0;
+  static bool ledState = false;
+  uint32_t currentTime = millis();  // Simpler to use millis()
 
   if (currentTime - lastBlinkTime >= interval) {
     lastBlinkTime = currentTime;
-
-    // Toggle LED state using direct port manipulation
-    if (REG_READ(GPIO_OUT_REG) & (1ULL << DEBUG_LED_PIN)) {
-      REG_WRITE(GPIO_OUT_W1TC_REG, (1ULL << DEBUG_LED_PIN));
-    } else {
+    ledState = !ledState;
+    
+    if (ledState) {
       statusLed.setPixelColor(0, statusLed.Color(r, g, b));
-      statusLed.setBrightness(DEBUG_LED_BRIGHTNESS);
-      statusLed.show();
-      REG_WRITE(GPIO_OUT_W1TS_REG, (1ULL << DEBUG_LED_PIN));
+    } else {
+      statusLed.setPixelColor(0, statusLed.Color(0, 0, 0));
     }
+    statusLed.setBrightness(DEBUG_LED_BRIGHTNESS);
+    statusLed.show();
   }
 }
 
@@ -78,8 +78,7 @@ static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) 
 #define LED_RED() setLedColor(255, 0, 0)
 #define LED_YELLOW() setLedColor(255, 125, 0)
 #define LED_GREEN() setLedColor(0, 255, 0)
-#define blinkYellow(interval) blinkLed(255, 125, 0, interval)
-#define blinkGreen(interval) blinkLed(0, 255, 0, interval)
+#define BLINK_YELLOW_LED(interval) blinkLed(255, 125, 0, interval)
 
 #else  // DEBUG_LED == DEBUG_LED_DISABLED
 /** 
@@ -96,6 +95,7 @@ static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) 
  * @brief Empty Set LED color
 */
 static void setLedColor(const uint8_t&, const uint8_t&, const uint8_t&) {}
+static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) {}
 
 /**
  * @brief Empty Common color macros
@@ -104,9 +104,7 @@ static void setLedColor(const uint8_t&, const uint8_t&, const uint8_t&) {}
 #define LED_RED()
 #define LED_YELLOW()
 #define LED_GREEN()
-#define blinkYellow(interval)
-#define blinkGreen(interval)
+#define BLINK_YELLOW_LED(interval) blinkLed(0, 0, 0, interval)
 
 #endif  // DEBUG_LED == DEBUG_LED_DISABLED
-
 #endif  // DEBUG_LED_H

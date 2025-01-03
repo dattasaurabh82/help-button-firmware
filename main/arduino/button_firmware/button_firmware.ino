@@ -506,8 +506,8 @@ static uint32_t generateSeed(void) {
 */
 static void enterFactoryMode(void) {
   // LED Status: Factory Mode - Yellow
-  LED_YELLOW();
-  blinkYellow(250);
+  // LED_YELLOW();
+  LED_INIT();  // Make sure LED is initialized
 
   DEBUG_VERBOSE(DBG_FACTORY_ENTER);
 
@@ -523,15 +523,15 @@ static void enterFactoryMode(void) {
   // Wait for button press or timeout
   uint32_t start_time = millis();
   while (millis() - start_time < FACTORY_WAIT_MS) {
+    BLINK_YELLOW_LED(250);  // Call the blink function frequently
     // -- OLD
     // if (digitalRead(BOOT_PIN) == LOW) {
     // -- NEW
     if (gpio_get_level(BOOT_PIN) == 0) {
-      DEBUG_VERBOSE(DBG_FACTORY_BTN);
-      delay(100);  // Debounce
+      delay(10);  // Shorter debounce
       break;
     }
-    delay(100);
+    delay(1);  // Very short delay to allow other tasks
   }
 
   // Transition to normal operation (steps)
@@ -540,7 +540,7 @@ static void enterFactoryMode(void) {
 
   DEBUG_VERBOSE(DBG_FACTORY_TRANS);
   DEBUG_FLUSH();  // Allow serial to flush
-  LED_OFF();      // Turn off LEDs
+  // LED_OFF();      // Turn off LEDs
 
   enterNormalMode();
 }
@@ -600,7 +600,6 @@ static uint32_t generateRollingCode(void) {
 static void enterNormalMode(void) {
   // LED Status: Active/Normal - Green
   LED_GREEN();
-  blinkGreen(1000);
 
   DEBUG_VERBOSE(DBG_NORMAL_ENTER);
 
@@ -613,6 +612,7 @@ static void enterNormalMode(void) {
   uint32_t rolling_code = generateRollingCode();
   printDebugInfo(rolling_code);
 
+  // OLD
   // 2. Broadcast Rolling code
   broadcastBeacon(rolling_code);
 
@@ -622,12 +622,7 @@ static void enterNormalMode(void) {
   DEBUG_VERBOSE(DBG_NORMAL_SLEEP);
 
   // Configure wakeup on GPIO ...
-  // -- OLD | Method 1: ext1 Wakeup (Multiple Pins): Can wake up on MULTIPLE GPIO pins simultaneously & offers more complex wakeup conditions and is the only was ESP32-H2 can wake up from deep sleep
-  // const uint64_t ext_wakeup_pin_1_mask = 1ULL << BOOT_PIN;  // GPIO-9
-  // esp_sleep_enable_ext1_wakeup_io(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_LOW);
-
-  // // or -- NEW | with better error checks
-  // -- WIP
+  // Ext1 Wakeup (Multiple Pins) (also, only one for ESP32-H2): Can wake up on MULTIPLE GPIO pins simultaneously & offers more complex
   // setupDeepSleepWakeup();
   if (!setupDeepSleepWakeup(BOOT_PIN)) {
     DEBUG_VERBOSE("\n[ERROR] Deep sleep wakeup configuration failed ❌");
@@ -636,9 +631,10 @@ static void enterNormalMode(void) {
   }
   DEBUG_VERBOSE("\n[WARNING] Will go to sleep as we could setup wakeup pin. 🥱");
 
-  DEBUG_FLUSH();   // Allow serial to flush
-  DEBUG_DEINIT();  // Kill Serial / Deinitilaize Serial
-  LED_OFF();       // Turn off LEDs
+  DEBUG_FLUSH();     // Allow serial to flush
+  DEBUG_DEINIT();    // Kill Serial / Deinitilaize Serial
+  LED_OFF();         // Turn off LEDs
+  statusLed.show();  // Force the final LED state
 
   // -- TBD Turn off Neopixel LED pin
 
