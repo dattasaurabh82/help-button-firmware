@@ -1,5 +1,21 @@
 # ESP32-H2 Secure Boot Guide
 
+Secure boot ensures that our ESP32-H2 only runs firmware that we have authorized. 
+
+When enabled:
+
+- Only firmware signed with your private key will be accepted
+- Prevents unauthorized or malicious code from running
+- Protects against firmware tampering and unauthorized updates
+- _Once enabled, cannot be disabled (permanent security feature)_
+
+## Key points
+
+- Requires initial setup with a signing key
+- All firmware updates must be signed
+- Provides hardware-level security
+- Essential for IoT devices requiring secure deployments
+
 > 💡 No Github Actions Flow at the Moment. Need local system instakllation. For that Follow Process: [2.1. Install using arduino-cli](https://github.com/dattasaurabh82/help-button-firmware/tree/main?tab=readme-ov-file#22-install-esp32-boards)
 
 ## 1. Initial Secure Boot Setup (One Time Only)
