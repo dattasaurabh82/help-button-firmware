@@ -112,9 +112,9 @@ static void enterNormalMode(void);
 static void handleError(const ErrorCode& error);
 
 /* Hardware Control */
-static void powerDownDomains(void);  // NEW
+static void powerDownDomains(void);
 static void disableUnusedPins(void);
-static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin);  // NEW
+static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin);
 
 /* Security Functions */
 static uint32_t generateSeed(void);
@@ -126,8 +126,9 @@ static void broadcastBeacon(const uint32_t& code);
 
 /* Utility Functions */
 static void printDebugInfo(uint32_t code);
+static String getMacAddressEx(bool raw = false, uint8_t* mac_out = nullptr);
 static String getMacAddress(void);
-static void optimizeClocks(void);  // NEW
+static void optimizeClocks(void);
 
 
 
@@ -448,37 +449,28 @@ static bool setupBLE(void) {
  * @brief Get device MAC address
  * @return String MAC address in XX:XX:XX:XX:XX:XX format
  */
-//  OLD - uses BLE MAC - But they are all the same for all esp32-h2 devices: 74:4D:BD:FF:FE:60 / 74:4D:BD:60:2E:35
-// static String getMacAddress(void) {
-//   uint8_t mac[6];
-//   esp_read_mac(mac, ESP_MAC_IEEE802154);
-//   char mac_str[18];
-//   snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
-//            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-//   return String(mac_str);
-// }
-
-// NEW - uses custom MAC burned to efuses by: espefuse.py --chip esp32h2 --port /dev/cu.usbserial-2120 burn_custom_mac <MAC address>
-static String getMacAddress(void) {
+// Uses custom MAC burned to efuses by: espefuse.py --chip esp32h2 --port /dev/cu.usbserial-2120 burn_custom_mac <MAC address>
+// Modified to allow getting either MAC string or raw bytes
+static String getMacAddressEx(bool raw, uint8_t* mac_out) {
   uint8_t mac[6];
   size_t mac_size = 6;
-
-  // read custom-set MAC
   esp_err_t err = esp_efuse_read_field_blob(ESP_EFUSE_CUSTOM_MAC, mac, mac_size * 8);
 
-  char mac_str[18];
-
-  if (err == ESP_OK) {
-    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  } else {
-    // Fallback to IEEE802154 MAC if custom MAC read fails
-    esp_read_mac(mac, ESP_MAC_IEEE802154);
-    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  // If raw bytes are requested, copy to output buffer
+  if (raw && mac_out != nullptr && err == ESP_OK) {
+    memcpy(mac_out, mac, 6);
   }
 
+  // Format string representation
+  char mac_str[18];
+  snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+           
   return String(mac_str);
+}
+
+static String getMacAddress(void) {
+  return getMacAddressEx(false, nullptr);
 }
 
 
@@ -490,7 +482,7 @@ static String getMacAddress(void) {
  */
 static uint32_t generateSeed(void) {
   uint8_t macAddr[6];
-  esp_read_mac(macAddr, ESP_MAC_IEEE802154);
+  getMacAddressEx(true, macAddr);  // Get raw custom unique MAC bytes using our new function
 
   uint32_t seed = PRODUCT_KEY;
   seed ^= ((uint32_t)BATCH_ID << 16);
@@ -534,7 +526,7 @@ static void enterFactoryMode(void) {
   rtc_data.counter = 0;
 
   // Print device information
-  DEBUG_VERBOSE_F(DBG_MAC_CUSTOM, getMacAddress().c_str());
+  DEBUG_VERBOSE_F(DBG_MAC_CUSTOM, getMacAddress().c_str());  // unique custm set MAC address
   DEBUG_VERBOSE_F(DBG_FACTORY_SEED, rtc_data.seed);
   DEBUG_VERBOSE(DBG_FACTORY_WAIT);  // msg: "Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation."
 
@@ -667,58 +659,6 @@ static void enterNormalMode(void) {
 
 
 
-
-// /**
-//  * @brief Broadcasts rolling code over BLE advertisement with custom formatting
-//  * @details Packet structure [9 bytes total]:
-//  *   - Header: MANUFACTURER_ID [2B]
-//  *   - Type: Rolling code identifier [1B]
-//  *   - Length: Payload length [1B]
-//  *   - Payload: Rolling code [4B]
-//  *   - CRC: Checksum [1B]
-//  *
-//  * @param code 32-bit rolling code to broadcast
-//  */
-// -- OLD
-// static void broadcastBeacon(const uint32_t& code) {
-//   if (!pAdvertising) {
-//     handleError(ErrorCode::BLE_INIT_FAILED);
-//     return;
-//   }
-
-//   uint8_t packet[9];
-//   packet[0] = MANUFACTURER_ID & 0xFF;
-//   packet[1] = (MANUFACTURER_ID >> 8) & 0xFF;
-//   packet[2] = 0x01;
-//   packet[3] = 0x04;
-
-//   packet[4] = (code >> 24) & 0xFF;
-//   packet[5] = (code >> 16) & 0xFF;
-//   packet[6] = (code >> 8) & 0xFF;
-//   packet[7] = code & 0xFF;
-
-//   uint8_t crc = 0;
-//   for (int i = 0; i < 8; i++) {
-//     crc ^= packet[i];
-//   }
-//   packet[8] = crc;
-
-//   BLEAdvertisementData advData;
-//   advData.setName(PRODUCT_NAME);
-//   String data;
-//   for (int i = 0; i < sizeof(packet); i++) {
-//     data += (char)packet[i];
-//   }
-//   advData.setManufacturerData(data);
-//   pAdvertising->setAdvertisementData(advData);
-
-//   pAdvertising->start();
-//   delay(BEACON_TIME_MS);
-//   pAdvertising->stop();
-// }
-
-
-//  -- NEW
 /**
 * @brief Broadcasts rolling code via BLE advertising
 * @param code 32-bit rolling code to broadcast
@@ -892,8 +832,16 @@ static void handleError(const ErrorCode& error) {
  * @param code Current rolling code value
  */
 static void printDebugInfo(uint32_t code) {
-  DEBUG_VERBOSE(DBG_DEBUG_START);  // Change from VERBOSE to INFO
+  DEBUG_VERBOSE(DBG_DEBUG_START);
+  // Print IEEE802154 MAC that is seen by BLE apps (used for defualt BLE adv header and unique but same to all radios from one manufacturers)
+  uint8_t ble_mac[6];
+  esp_read_mac(ble_mac, ESP_MAC_IEEE802154);
+  char ble_mac_str[18];
+  snprintf(ble_mac_str, sizeof(ble_mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+           ble_mac[0], ble_mac[1], ble_mac[2], ble_mac[3], ble_mac[4], ble_mac[5]);
+  // Print the unique, custom set MAC address (that we set by eFuse settings and used in rolling code)
   DEBUG_VERBOSE_F(DBG_DEBUG_MAC, getMacAddress().c_str());
+  DEBUG_VERBOSE_F(DBG_DEBUG_MAC_BLE, ble_mac_str);
   DEBUG_VERBOSE_F(DBG_DEBUG_KEY, PRODUCT_KEY);
   DEBUG_VERBOSE_F(DBG_DEBUG_BATCH, BATCH_ID);
   DEBUG_VERBOSE_F(DBG_DEBUG_SEED, rtc_data.seed);

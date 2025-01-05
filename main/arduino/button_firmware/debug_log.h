@@ -48,8 +48,9 @@ static const char PROGMEM DBG_BLE_SETUP[] = "\n[BLE] Setup Complete 👏🏼";
 static const char PROGMEM DBG_BLE_BROADCAST_WARN[] = "\n[BLE] Broadcasting beacon for: %d secs 📲 ...";
 static const char PROGMEM DBG_FACTORY_WARN[] = "\n[WARNING] Factory reset required 🛠️";
 static const char PROGMEM DBG_FACTORY_ENTER[] = "\n[FACTORY] Entering Factory Reset Mode 🛠️";
-static const char PROGMEM DBG_MAC_CUSTOM[] = "\n[FACTORY] Custom MAC: %s";             
+static const char PROGMEM DBG_MAC_CUSTOM[] = "\n[FACTORY] Unique Custom MAC: %s";             
 static const char PROGMEM DBG_MAC_BYTES[] = "\n[FACTORY] Custom MAC: %02X:%02X:%02X:%02X:%02X:%02X";
+static const char PROGMEM DBG_DEBUG_MAC_BLE[] = "\nBLE Device ID (IEEE802154): %s";
 static const char PROGMEM DBG_FACTORY_SEED[] = "\n[FACTORY] Generated Seed: 0x%08lX";
 static const char PROGMEM DBG_FACTORY_WAIT[] = "\n[FACTORY] Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation.";
 static const char PROGMEM DBG_FACTORY_BTN[] = "\n[FACTORY] Button press detected 👈🏼";
@@ -59,7 +60,7 @@ static const char PROGMEM DBG_NORMAL_SLEEP[] = "\n[NORMAL] Entering deep sleep .
 
 // Debug Info Messages
 static const char PROGMEM DBG_DEBUG_START[] = "\n=== Debug Information ===";
-static const char PROGMEM DBG_DEBUG_MAC[] = "\nUnique MAC Address: %s";
+static const char PROGMEM DBG_DEBUG_MAC[] = "\nUnique Custom MAC: %s";
 static const char PROGMEM DBG_DEBUG_KEY[] = "\nProduct Key: 0x%08lX";
 static const char PROGMEM DBG_DEBUG_BATCH[] = "\nBatch ID: 0x%04X";
 static const char PROGMEM DBG_DEBUG_SEED[] = "\nCurrent Seed: 0x%08lX";
