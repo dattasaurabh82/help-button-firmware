@@ -33,7 +33,7 @@ espefuse.py --port <PORT> burn_efuse SECURE_BOOT_EN 1
 ## 2. Compiling (Every Update)
 
 ```bash
-*# Clean binary directory*
+# Clean binary directory
 rm -rf binary
 mkdir binary
 
@@ -57,7 +57,7 @@ espsecure.py sign_data --version 2 --keyfile secure_boot_signing_key.pem --outpu
 ## 4. Uploading (Every Update)
 
 ```bash
-esptool.py --chip esp32h2 --port "<PORT>" --baud 921600 \
+esptool.py --chip esp32h2 --port <PORT> --baud 921600 \
 --before default_reset --after hard_reset write_flash -e -z --flash_mode keep \
 --flash_freq keep --flash_size 4MB --force \
 0x0 "binary/<SKETCH_NAME>.ino.signed.bootloader.bin" \
