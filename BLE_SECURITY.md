@@ -36,7 +36,7 @@ flowchart TD
 The system uses two different MAC addresses for different purposes:
 
 1. **Custom MAC Address** (`00:60:2F:15:71:61`)
-   - Set using eFuse command: `espefuse.py --chip esp32h2 burn_custom_mac 00:60:2F:15:71:61`
+   - Set using eFuse command: `espefuse.py --chip esp32h2 burn_custom_mac <A CUSTOM UNI CAST MAC ADDR>` or use [burn_custom_mac.sh](custom_mac_burner/burn_custom_mac.sh)
    - Stored in eFuse BLOCK3
    - Used as input for device seed generation
    - Read using `getMacAddressEx()` function
