@@ -363,6 +363,16 @@ flowchart TD
    style Legend fill:#fff,stroke:#333,stroke-width:1px
 ```
 
+---
+
+## Deep dives
+
+### Key areas
+
+1. Power Saving
+2. Rolling Code Security
+3. Secure Boot
+
 ## License
 
 [GPL-3.0](LICENSE)
