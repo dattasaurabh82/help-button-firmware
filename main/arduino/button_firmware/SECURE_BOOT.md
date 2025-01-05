@@ -80,4 +80,6 @@ Just do:
 
 ```bash
 ./secure_boot_process.sh --port <PORT>
+
+# compiles, signs and uploads signed binaries
 ```
