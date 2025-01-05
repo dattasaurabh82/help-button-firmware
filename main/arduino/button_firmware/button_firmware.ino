@@ -36,15 +36,15 @@
 #define DEBUG_LED DEBUG_LED_ENABLED
 #include "debug_led.h"
 
+#include "esp_efuse.h"
+#include "esp_efuse_table.h"
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 #include <esp_system.h>
 #include <esp_sleep.h>
 #include <esp_pm.h>
 #include <esp_mac.h>
-
 #include "esp_private/periph_ctrl.h"
-
 #include "driver/rtc_io.h"
 #include "soc/rtc.h"
 
@@ -448,14 +448,39 @@ static bool setupBLE(void) {
  * @brief Get device MAC address
  * @return String MAC address in XX:XX:XX:XX:XX:XX format
  */
+//  OLD - uses BLE MAC - But they are all the same for all esp32-h2 devices: 74:4D:BD:FF:FE:60 / 74:4D:BD:60:2E:35
+// static String getMacAddress(void) {
+//   uint8_t mac[6];
+//   esp_read_mac(mac, ESP_MAC_IEEE802154);
+//   char mac_str[18];
+//   snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+//            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+//   return String(mac_str);
+// }
+
+// NEW - uses custom MAC burned to efuses by: espefuse.py --chip esp32h2 --port /dev/cu.usbserial-2120 burn_custom_mac <MAC address>
 static String getMacAddress(void) {
   uint8_t mac[6];
-  esp_read_mac(mac, ESP_MAC_IEEE802154);
+  size_t mac_size = 6;
+
+  // read custom-set MAC
+  esp_err_t err = esp_efuse_read_field_blob(ESP_EFUSE_CUSTOM_MAC, mac, mac_size * 8);
+
   char mac_str[18];
-  snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
-           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+  if (err == ESP_OK) {
+    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  } else {
+    // Fallback to IEEE802154 MAC if custom MAC read fails
+    esp_read_mac(mac, ESP_MAC_IEEE802154);
+    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  }
+
   return String(mac_str);
 }
+
 
 
 
@@ -509,7 +534,7 @@ static void enterFactoryMode(void) {
   rtc_data.counter = 0;
 
   // Print device information
-  DEBUG_VERBOSE_F(DBG_FACTORY_MAC, getMacAddress().c_str());
+  DEBUG_VERBOSE_F(DBG_MAC_CUSTOM, getMacAddress().c_str());
   DEBUG_VERBOSE_F(DBG_FACTORY_SEED, rtc_data.seed);
   DEBUG_VERBOSE(DBG_FACTORY_WAIT);  // msg: "Will await 20 sec to jump to normal ops.\n[FACTORY] Or, press BOOT to jump to normal operation."
 
