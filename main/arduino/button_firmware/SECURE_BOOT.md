@@ -1,6 +1,6 @@
 # ESP32-H2 Secure Boot Guide
 
-> 💡 No Github Actions Flow at the Moment. Need local system instakllation. For that Follow Process: ...
+> 💡 No Github Actions Flow at the Moment. Need local system instakllation. For that Follow Process: [2.1. Install using arduino-cli](https://github.com/dattasaurabh82/help-button-firmware/tree/main?tab=readme-ov-file#22-install-esp32-boards)
 
 ## 1. Initial Secure Boot Setup (One Time Only)
 
@@ -8,7 +8,7 @@
 
 ```bash
 # In your project directory
-# 1. Generate signing key:
+# 1. Generate signing key, if it is the first time and we do not have the secure_boot_signing_key.pem
 espsecure.py generate_signing_key secure_boot_signing_key.pem
 
 # 2. Process the public key for efuse:
