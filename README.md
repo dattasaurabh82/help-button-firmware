@@ -9,38 +9,36 @@
 ## File Structure
 
 ```txt
+.
 ├── LICENSE
 ├── README.md
 ├── assets/
-│     ├── [README.md's viausl assets]
 ├── main/
-│   ├── arduino/
-│   │   └── button_firmware/
-│   │       ├── binary/
-│   │       │   ├── build_info.txt
-│   │       │   ├── build_log.txt
-│   │       │   ├── button_firmware.bin
-│   │       │   ├── button_firmware.bootloader.bin
-│   │       │   ├── button_firmware.elf
-│   │       │   ├── button_firmware.map
-│   │       │   ├── button_firmware.merged-v0.0.3.bin
-│   │       │   ├── button_firmware.merged.bin
-│   │       │   └── button_firmware.partitions.bin
-│   │       └── button_firmware.ino
-│   └── pio/[TBD]
-├── test/[TBD]
+│   ├── arduino/
+│   │   └── button_firmware
+│   │       ├── SECURE_BOOT.md
+│   │       ├── binary/
+│   │       ├── button_firmware.ino
+│   │       ├── debug_led.h
+│   │       ├── debug_log.h
+│   │       ├── secrets.h
+│   │       ├── secrets_template.h
+│   │       ├── secure_boot_process.sh
+│   └── pio/
+├── test/
 └── webflasher/
     ├── assets/
-    │   ├── css./
-    │   │   └── styles.css
-    │   ├── favicon.ico
-    │   ├── js/
-    │   │   └── main.js
-    │   └── logo_black_fullname.png
+    │   ├── css
+    │   │   └── styles.css
+    │   ├── favicon.ico
+    │   ├── js
+    │   │   └── main.js
+    │   └── logo_black_fullname.png
     ├── firmware/
-    │   └── button_firmware.merged.bin
+    │   └── button_firmware.merged.bin
     ├── index.html
     └── manifest.json
+
 ```
 
 1. The main firmware directory is: [main/](main/) .
@@ -371,7 +369,7 @@ flowchart TD
 
 1. Power Saving
 2. Rolling Code Security
-3. Secure Boot
+3. [Secure Boot]()
 
 ## License
 
