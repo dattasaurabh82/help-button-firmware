@@ -43,11 +43,12 @@
 #include <esp_pm.h>
 #include <esp_mac.h>
 
-// TBT - remove - getting warning ; "no longer used in future ..."
-#include "driver/periph_ctrl.h"
+#include "esp_private/periph_ctrl.h"
 
 #include "driver/rtc_io.h"
 #include "soc/rtc.h"
+
+
 
 
 /* ============= Configuration Constants ============= */
@@ -132,6 +133,53 @@ static void optimizeClocks(void);  // NEW
 
 
 /**
+ * @brief Arduino setup function
+ */
+void setup() {
+  DEBUG_INIT();
+  DEBUG_VERBOSE(DBG_INIT);
+
+  // Validate RTC memory initialization
+  if (rtc_data.magic != RTC_DATA_MAGIC) {
+    // First-time or corrupted RTC memory
+    DEBUG_VERBOSE("\n[RTC] Memory validation failed - initializing");
+    memset(&rtc_data, 0, sizeof(rtc_data));
+    rtc_data.magic = RTC_DATA_MAGIC;
+    rtc_data.state = DeviceState::UNINITIALIZED;
+    rtc_data.is_initialized = false;
+    rtc_data.lastError = ErrorCode::NONE;
+  }
+
+  // Initialize hardware
+  if (!initializeHardware()) {
+    handleError(rtc_data.lastError);
+  }
+
+  // Determine operation mode
+  // -- OLD
+  // if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
+  // -- NEW
+  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && gpio_get_level(BOOT_PIN) == 0)) {
+    rtc_data.state = DeviceState::FACTORY_MODE;
+    DEBUG_VERBOSE(DBG_FACTORY_WARN);
+    enterFactoryMode();
+  } else {
+    rtc_data.state = DeviceState::NORMAL_MODE;
+    enterNormalMode();
+  }
+}
+
+
+/**
+ * @brief Arduino Main loop function
+ * @note  Unused but device sleeps between operations
+ */
+void loop() {
+  delay(1000);  // Required for ESP32 background tasks
+}
+
+
+/**
 * @brief Configure deep sleep wakeup on specified GPIO using EXT1 (ESP32-H2)
 * @param wakeup_pin RTC-capable GPIO to use as wakeup source (GPIOs 0-10)
 * @return bool true if wakeup configured successfully, false on any error
@@ -158,8 +206,6 @@ static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin) {
       return false;
   }
 }
-
-
 
 
 /**
@@ -239,104 +285,6 @@ static void optimizeClocks(void) {
 }
 
 
-
-
-
-/**
- * @brief Hardware initialization
- * @return bool true if all initializations successful, false otherwise
- */
-static bool initializeHardware(void) {
-  bool success = true;
-
-  DEBUG_VERBOSE(DBG_HW_INIT);
-  DEBUG_VERBOSE_F(DBG_HW_STATE, static_cast<int>(rtc_data.state));
-
-  // Configure status LED
-  LED_INIT();
-
-  // Add clock optimization here - before BLE init but after basic setup
-  optimizeClocks();
-
-  // -- OLD
-  // Configure BOOT button with internal pullup
-  // pinMode(BOOT_PIN, INPUT_PULLUP);
-  // -- NEW
-  // Native ESP-IDF configuration for input with pull-up
-  gpio_config_t io_conf = {
-    .pin_bit_mask = (1ULL << BOOT_PIN),
-    .mode = GPIO_MODE_INPUT,
-    .pull_up_en = GPIO_PULLUP_ENABLE,
-    .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    .intr_type = GPIO_INTR_DISABLE
-  };
-  gpio_config(&io_conf);
-
-  // Disable unused pins
-  disableUnusedPins();
-
-  // ** IMPORTANT: Always try to setup BLE, regardless of state
-  if (!setupBLE()) {
-    DEBUG_VERBOSE(DBG_ERR_BLE);
-    success = false;
-    rtc_data.lastError = ErrorCode::BLE_INIT_FAILED;
-  }
-
-  DEBUG_VERBOSE_F(DBG_HW_RESULT, success ? "SUCCESS" : "FAILED");
-  return success;
-}
-
-
-
-
-/**
- * @brief Arduino setup function
- */
-void setup() {
-  DEBUG_INIT();
-  DEBUG_VERBOSE(DBG_INIT);
-
-  // Validate RTC memory initialization
-  if (rtc_data.magic != RTC_DATA_MAGIC) {
-    // First-time or corrupted RTC memory
-    DEBUG_VERBOSE("[RTC] Memory validation failed - initializing");
-    memset(&rtc_data, 0, sizeof(rtc_data));
-    rtc_data.magic = RTC_DATA_MAGIC;
-    rtc_data.state = DeviceState::UNINITIALIZED;
-    rtc_data.is_initialized = false;
-    rtc_data.lastError = ErrorCode::NONE;
-  }
-
-  // Initialize hardware
-  if (!initializeHardware()) {
-    handleError(rtc_data.lastError);
-    return;
-  }
-
-  // Determine operation mode
-  // -- OLD
-  // if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
-  // -- NEW
-  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && gpio_get_level(BOOT_PIN) == 0)) {
-    rtc_data.state = DeviceState::FACTORY_MODE;
-    DEBUG_VERBOSE(DBG_FACTORY_WARN);
-    enterFactoryMode();
-  } else {
-    rtc_data.state = DeviceState::NORMAL_MODE;
-    enterNormalMode();
-  }
-}
-
-
-/**
- * @brief Arduino Main loop function
- * @note  Unused but device sleeps between operations
- */
-void loop() {
-  delay(1000);  // Required for ESP32 background tasks
-}
-
-
 /**
  * @brief Disables unused GPIO pins to reduce power consumption
  * @details Configures specified pins as outputs, pulls them low and enables pin hold
@@ -385,6 +333,51 @@ static void disableUnusedPins(void) {
   }
 }
 
+
+/**
+ * @brief Hardware initialization
+ * @return bool true if all initializations successful, false otherwise
+ */
+static bool initializeHardware(void) {
+  bool success = true;
+
+  DEBUG_VERBOSE(DBG_HW_INIT);
+  DEBUG_VERBOSE_F(DBG_HW_STATE, static_cast<int>(rtc_data.state));
+
+  // Configure status LED
+  LED_INIT();
+
+  // Add clock optimization here - before BLE init but after basic setup
+  optimizeClocks();
+
+  // -- OLD
+  // Configure BOOT button with internal pullup
+  // pinMode(BOOT_PIN, INPUT_PULLUP);
+  // -- NEW
+  // Native ESP-IDF configuration for input with pull-up
+  gpio_config_t io_conf = {
+    .pin_bit_mask = (1ULL << BOOT_PIN),
+    .mode = GPIO_MODE_INPUT,
+    .pull_up_en = GPIO_PULLUP_ENABLE,
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE,
+    .hys_ctrl_mode = GPIO_HYS_SOFT_DISABLE
+  };
+  gpio_config(&io_conf);
+
+  // Disable unused pins
+  disableUnusedPins();
+
+  // ** IMPORTANT: Always try to setup BLE, regardless of state
+  if (!setupBLE()) {
+    DEBUG_VERBOSE(DBG_ERR_BLE);
+    success = false;
+    rtc_data.lastError = ErrorCode::BLE_INIT_FAILED;
+  }
+
+  DEBUG_VERBOSE_F(DBG_HW_RESULT, success ? "SUCCESS" : "FAILED");
+  return success;
+}
 
 
 /**
@@ -626,10 +619,10 @@ static void enterNormalMode(void) {
   // setupDeepSleepWakeup();
   if (!setupDeepSleepWakeup(BOOT_PIN)) {
     DEBUG_VERBOSE("\n[ERROR] Deep sleep wakeup configuration failed ❌");
-    DEBUG_VERBOSE("\n[ERROR] So, will not go to sleep (exiting function ...) 😳");
+    DEBUG_VERBOSE("\n[ERROR] So, will not go to sleep (exiting function ...) 😳\n");
     return;
   }
-  DEBUG_VERBOSE("\n[WARNING] Will go to sleep as we could setup wakeup pin. 🥱");
+  DEBUG_VERBOSE("\n[WARNING] Will go to sleep as we could setup wakeup pin. 🥱\n");
 
   DEBUG_FLUSH();     // Allow serial to flush
   DEBUG_DEINIT();    // Kill Serial / Deinitilaize Serial
