@@ -368,8 +368,8 @@ flowchart TD
 ### Key areas
 
 1. Power Saving
-2. Rolling Code Security
-3. [Secure Boot]()
+2. [Rolling Code Security](BLE_SECURITY.md)
+3. [Secure Boot](main/arduino/button_firmware/SECURE_BOOT.md)
 
 ## License
 
