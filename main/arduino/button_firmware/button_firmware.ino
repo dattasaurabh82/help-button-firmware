@@ -45,6 +45,7 @@
 #include <esp_pm.h>
 #include <esp_mac.h>
 #include "esp_private/periph_ctrl.h"
+#include "soc/periph_defs.h"
 #include "driver/rtc_io.h"
 #include "soc/rtc.h"
 
@@ -251,23 +252,31 @@ static void optimizeClocks(void) {
     DEBUG_VERBOSE("\n[POWER] CPU Frequency set successfully to 80 MHz");
   }
 
-  // -- TBT
-  // ** Note: Configure XTAL frequency for BLE but clock functions are not directly accessible in Arduino framework
-  // ** Note: ESP32-H2 uses different clock configuration compared to other ESP32s
-  // rtc_xtal_freq_t current_freq = rtc_clk_xtal_freq_get();
-  // if (current_freq != RTC_XTAL_FREQ_32M) {
-  //   rtc_clk_xtal_freq_set(RTC_XTAL_FREQ_32M);
-  // }
+// -- TBT
+// ** Note: Configure XTAL frequency for BLE but clock functions are not directly accessible in Arduino framework
+// ** Note: ESP32-H2 uses different clock configuration compared to other ESP32s
+// rtc_xtal_freq_t current_freq = rtc_clk_xtal_freq_get();
+// if (current_freq != RTC_XTAL_FREQ_32M) {
+//   rtc_clk_xtal_freq_set(RTC_XTAL_FREQ_32M);
+// }
 
 
-  // For ESP32-H2, use correct module definitions
+// For ESP32-H2, use correct module definitions
 #ifdef CONFIG_IDF_TARGET_ESP32H2
   periph_module_disable(PERIPH_LEDC_MODULE);    // Disable unused peripherals (LED PWM module)
   periph_module_disable(PERIPH_MCPWM0_MODULE);  // Disable unused peripherals (Motor Control PWM )
   periph_module_disable(PERIPH_PCNT_MODULE);    // Disable unused peripherals (Pulse Counter)
 
-  // Additional peripherals that can be disabled
-  // periph_module_disable(PERIPH_RMT_MODULE);  // Remote Control
+// Additional peripherals that can be disabled
+#if DEBUG_LED == DEBUG_LED_DISABLED
+  periph_module_disable(PERIPH_RMT_MODULE);  // Remote Control
+#endif
+  // ** Disabling it Affects WS2812B/NeoPixel LED control and other PWM functions,
+  // precise timing-based signals, IR remote control decoding
+  // & other remote control protocols.
+  // So, to save more current, if debug LED is disabled (i.e. our WS2812B/NeoPixel LED), 
+  // we can enable the disablement of RMT CTRL PERIF
+
   periph_module_disable(PERIPH_SARADC_MODULE);    // ADC
   periph_module_disable(PERIPH_SYSTIMER_MODULE);  // System Timer
   // -- NEW -- //
@@ -276,6 +285,8 @@ static void optimizeClocks(void) {
   periph_module_disable(PERIPH_UART1_MODULE);  // UART1
   periph_module_disable(PERIPH_SPI2_MODULE);   // SPI2
   periph_module_disable(PERIPH_I2C0_MODULE);   // I2C0
+
+  periph_module_disable(PERIPH_RSA_MODULE);  // Cryptographic Module
 #endif
 
 
@@ -465,7 +476,7 @@ static String getMacAddressEx(bool raw, uint8_t* mac_out) {
   char mac_str[18];
   snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-           
+
   return String(mac_str);
 }
 
@@ -644,9 +655,8 @@ static void enterNormalMode(void) {
   DEBUG_FLUSH();     // Allow serial to flush
   DEBUG_DEINIT();    // Kill Serial / Deinitilaize Serial
   LED_OFF();         // Turn off LEDs
-  statusLed.show();  // Force the final LED state
 
-  // -- TBD Turn off Neopixel LED pin
+  // -- TBT Disable Neopixel LED pin, maybe ??
 
   // -- TBT
   // Problem: - The system is restarting instead of properly waking from deep sleep when these power domains are configured
