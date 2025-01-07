@@ -19,10 +19,9 @@
 
 
 #if DEBUG_LED == DEBUG_LED_ENABLED
+
 #include <Adafruit_NeoPixel.h>
-
 #define DEBUG_LED_BRIGHTNESS 15 /**< LED brightness (0-255) */
-
 static Adafruit_NeoPixel statusLed(1, DEBUG_LED_PIN, NEO_GRB + NEO_KHZ800);
 
 /**
@@ -85,6 +84,7 @@ static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) 
  * @brief Functions when LED disabled -> Make the Debug LED pin LOW to prevent from floating 
  * @return  True; always
 */
+
 #define LED_INIT() \
   do { \
     pinMode(DEBUG_LED_PIN, OUTPUT); \
