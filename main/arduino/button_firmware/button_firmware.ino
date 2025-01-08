@@ -695,6 +695,8 @@ static void broadcastBeacon() {
   // Generate rolling code using this timestamp
   uint32_t code = generateRollingCode(timestamp);
 
+  printDebugInfo(code);  // Add this here, using same generated code
+
   // Create 8-byte payload
   uint8_t payload[8];
   // Rolling code (first 4 bytes)
