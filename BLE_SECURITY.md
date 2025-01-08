@@ -1,5 +1,8 @@
 # Rolling Code Generation & MAC Address Usage
 
+Check the detailed [description in this pdf](<assets/Rolling Code Processes.pdf>) 👇 (click on the image to oepn the High-Res PDF)
+[![alt text](<assets/Rolling Code Process.png>)](<assets/Rolling Code Processes.pdf>)
+
 ```mermaid
 flowchart TD
     subgraph Initialization
