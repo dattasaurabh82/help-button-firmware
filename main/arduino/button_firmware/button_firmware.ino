@@ -119,11 +119,11 @@ static bool setupDeepSleepWakeup(const gpio_num_t wakeup_pin);
 
 /* Security Functions */
 static uint32_t generateSeed(void);
-static uint32_t generateRollingCode(void);
+static uint32_t generateRollingCode(const uint32_t timestamp);
 
 /* BLE Functions */
 static bool setupBLE(void);
-static void broadcastBeacon(const uint32_t& code);
+static void broadcastBeacon(void);
 
 /* Utility Functions */
 static void printDebugInfo(uint32_t code);
@@ -274,7 +274,7 @@ static void optimizeClocks(void) {
   // ** Disabling it Affects WS2812B/NeoPixel LED control and other PWM functions,
   // precise timing-based signals, IR remote control decoding
   // & other remote control protocols.
-  // So, to save more current, if debug LED is disabled (i.e. our WS2812B/NeoPixel LED), 
+  // So, to save more current, if debug LED is disabled (i.e. our WS2812B/NeoPixel LED),
   // we can enable the disablement of RMT CTRL PERIF
 
   periph_module_disable(PERIPH_SARADC_MODULE);    // ADC
@@ -570,9 +570,9 @@ static void enterFactoryMode(void) {
 
 
 /**
-* @brief Generates secure rolling code using seed, timestamp, and mixing operations
+* @brief Generates secure rolling code using seed, timestamp (used for generating rolling code), and mixing operations
 * @details Algorithm flow:
-* 1. Gets 24-bit timestamp from esp_timer
+* 1. Gets 32-bit timestamp from esp_timer
 * 2. Combines with stored seed via multi-stage mixing:
 *    - Initial mix: (seed ^ timestamp) * prime1
 *    - Stage 1: XOR with right-shifted (13 bits)
@@ -584,8 +584,7 @@ static void enterFactoryMode(void) {
 * @return uint32_t Generated rolling code
 * @note Uses prime multipliers and bit shifts for avalanche effect
 */
-static uint32_t generateRollingCode(void) {
-  uint32_t timestamp = esp_timer_get_time() & 0xFFFFFF;  // 24-bit timestamp
+static uint32_t generateRollingCode(const uint32_t timestamp) {
   uint32_t base = rtc_data.seed;
 
   uint32_t mixed = (base ^ timestamp) * 0x7FFF;  // Prime1 multiplication
@@ -625,17 +624,13 @@ static void enterNormalMode(void) {
   DEBUG_VERBOSE(DBG_NORMAL_ENTER);
 
   // Core operations:
-  // 1. Generate
-  // 2. Broadcast Rolling code
-  // 3. Go to Sleep
+  // 1. Broadcast Rolling code
+  // 2. Go to Sleep
 
-  // 1. Generate
-  uint32_t rolling_code = generateRollingCode();
-  printDebugInfo(rolling_code);
-
-  // OLD
-  // 2. Broadcast Rolling code
-  broadcastBeacon(rolling_code);
+  // 1. Broadcast Rolling code
+  // Single call to broadcast - it handles timestamp,
+  // rolling code generation and broadcasting internally
+  broadcastBeacon();
 
   rtc_data.counter++;
 
@@ -652,9 +647,9 @@ static void enterNormalMode(void) {
   }
   DEBUG_VERBOSE("\n[WARNING] Will go to sleep as we could setup wakeup pin. 🥱\n");
 
-  DEBUG_FLUSH();     // Allow serial to flush
-  DEBUG_DEINIT();    // Kill Serial / Deinitilaize Serial
-  LED_OFF();         // Turn off LEDs
+  DEBUG_FLUSH();   // Allow serial to flush
+  DEBUG_DEINIT();  // Kill Serial / Deinitilaize Serial
+  LED_OFF();       // Turn off LEDs
 
   // -- TBT Disable Neopixel LED pin, maybe ??
 
@@ -668,66 +663,88 @@ static void enterNormalMode(void) {
 }
 
 
-
 /**
 * @brief Broadcasts rolling code via BLE advertising
 * @param code 32-bit rolling code to broadcast
-* @details Packet structure [9 bytes total]:
+* @details Packet structure [12 bytes total]:
 *   - Header: MANUFACTURER_ID [2B]
 *   - Type: Rolling code identifier [1B]
 *   - Length: Payload length [1B]
 *   - Payload: Rolling code [4B]
+*   - Payload: Timestamp [4B]      // NEW
 *   - CRC: Checksum [1B]
 * @flow:
 * 1. Validates BLE initialization
 * 2. Splits 32-bit code into 4 bytes
-* 3. Creates BLE advertisement payload
-* 4. Broadcasts for BEACON_TIME_MS duration
+* 3. Splits 32-bit timestamp into 4 bytes  // NEW
+* 4. Creates BLE advertisement payload
+* 5. Broadcasts for BEACON_TIME_MS duration
+*
+* @note Total payload increased from 9 to 12 bytes to accommodate timestamp
+*       This aids web-app verification by providing timing context
 */
-static void broadcastBeacon(const uint32_t& code) {
-  // Check BLE initialization
+static void broadcastBeacon() {
   if (!pAdvertising) {
     DEBUG_VERBOSE(DBG_ERR_BLE_UNINIT);
     return;
   }
 
-  // Split 32-bit code into byte array
-  uint8_t payload[4];
+  // Get timestamp ONCE for both operations
+  uint32_t timestamp = esp_timer_get_time() & 0xFFFFFFFF;
+
+  // Generate rolling code using this timestamp
+  uint32_t code = generateRollingCode(timestamp);
+
+  // Create 8-byte payload
+  uint8_t payload[8];
+  // Rolling code (first 4 bytes)
   payload[0] = (code >> 24) & 0xFF;
   payload[1] = (code >> 16) & 0xFF;
   payload[2] = (code >> 8) & 0xFF;
   payload[3] = code & 0xFF;
+  // Same timestamp used for generation (next 4 bytes)
+  payload[4] = (timestamp >> 24) & 0xFF;
+  payload[5] = (timestamp >> 16) & 0xFF;
+  payload[6] = (timestamp >> 8) & 0xFF;
+  payload[7] = timestamp & 0xFF;
 
-  // Optional: Debug stuff
-  DEBUG_VERBOSE("\n[BLE] Rolling Code Bytes:");
-  DEBUG_VERBOSE_F("\n      [0]: 0x%02X", payload[0]);
-  DEBUG_VERBOSE_F("\n      [1]: 0x%02X", payload[1]);
-  DEBUG_VERBOSE_F("\n      [2]: 0x%02X", payload[2]);
-  DEBUG_VERBOSE_F("\n      [3]: 0x%02X", payload[3]);
-
-  // Create advertisement data
+  // Create advertisement data first
   BLEAdvertisementData advData;
   advData.setName(PRODUCT_NAME);
   String data;
-  for (int i = 0; i < 4; i++) {
-    data += (char)payload[i];  // Convert bytes to chars
+  for (int i = 0; i < 8; i++) {
+    data += (char)payload[i];
   }
-  advData.setManufacturerData(data);  // Set payload
+  advData.setManufacturerData(data);
 
-  // Optional: Debug stuff
+  // Now debug output with the created data
+  DEBUG_VERBOSE("\n[BLE] Complete Advertisement Packet Structure:");
+  DEBUG_VERBOSE_F("\n      Header: Manufacturer ID [2B]: 0x%04X", MANUFACTURER_ID);
+  DEBUG_VERBOSE("\n      Type: Rolling code identifier [1B]");
+  DEBUG_VERBOSE_F("\n      Length: Payload length [1B]: %d", 8);  // 8 bytes payload
+  DEBUG_VERBOSE("\n      Payload [8B]:");
+  DEBUG_VERBOSE("\n          Rolling Code [4B]:");
+  for (int i = 0; i < 4; i++) {
+    DEBUG_VERBOSE_F("\n          [%d]: 0x%02X", i, payload[i]);
+  }
+  DEBUG_VERBOSE("\n          Timestamp [4B]:");
+  DEBUG_VERBOSE_F("\n          Full Value: 0x%08X", timestamp);
+  for (int i = 4; i < 8; i++) {
+    DEBUG_VERBOSE_F("\n          [%d]: 0x%02X", i, payload[i]);
+  }
   DEBUG_VERBOSE("\n[BLE] Complete Adv Packet:");
   DEBUG_VERBOSE_F("\n      Name: %s", PRODUCT_NAME);
   DEBUG_VERBOSE("\n      Data: ");
   for (int i = 0; i < data.length(); i++) {
     DEBUG_VERBOSE_F("0x%02X ", (uint8_t)data[i]);
   }
+  DEBUG_VERBOSE_F("\n      Total Packet Size: %d bytes", 12);  // 2+1+1+8 bytes
   DEBUG_VERBOSE("\n");
 
   pAdvertising->setAdvertisementData(advData);
 
   // Start advertising for specified duration
   DEBUG_VERBOSE_F(DBG_BLE_BROADCAST_WARN, static_cast<int>(BEACON_TIME_MS / 1000));
-
   pAdvertising->start();
   delay(BEACON_TIME_MS);
   pAdvertising->stop();
