@@ -44,11 +44,18 @@ check_tools() {
 # Function to validate MAC address format
 validate_mac() {
     local mac=$1
-    if [[ $mac =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
-        return 0
-    else
+    if [[ ! $mac =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
         return 1
     fi
+    
+    # Check for correct prefix
+    local prefix=$(echo $mac | cut -d':' -f1-3)
+    if [[ "${prefix,,}" != "60:55:f9" ]]; then
+        echo -e "${RED}[!]${NC} Invalid manufacturer prefix. Must start with 60:55:F9"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Function to save last used port
@@ -231,7 +238,7 @@ while true; do
             echo -e "Generated MAC: $MAC_ADDRESS"
             ;;
         2)
-            echo -e "Enter custom MAC address (format: 00:60:2F:XX:XX:XX):"
+            echo -e "Enter custom MAC address (format: 60:55:F9:XX:XX:XX):"
             read -r MAC_ADDRESS
             ;;
         *)
@@ -243,7 +250,7 @@ while true; do
     if validate_mac "$MAC_ADDRESS"; then
         break
     else
-        echo -e "${RED}[!]${NC} Invalid MAC address format. Please use format: 00:60:2F:XX:XX:XX"
+        echo -e "${RED}[!]${NC} Invalid MAC address format. Please use format: 60:55:F9:XX:XX:XX"
     fi
 done
 
