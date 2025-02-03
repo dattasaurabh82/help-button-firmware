@@ -149,7 +149,20 @@ To test development and firmware, you can purchase [ESP32-H2-DevKitM-1](https://
 <details>
 <summary>Real hardware module</summary>
 
-TBD
+_WIP_ 
+
+![alt text](<assets/WhatsApp Image 2025-01-21 at 09.02.57.jpeg>)
+
+Front
+
+![alt text](<assets/WhatsApp Image 2025-01-21 at 09.02.58.jpeg>)
+
+Back
+
+![alt text](<assets/programmer_assembly v60.png>)
+
+[Tooling] With ext-programmer for mass board wake-ups. 
+
 </details>
 
 ---
