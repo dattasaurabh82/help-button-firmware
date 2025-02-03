@@ -55,11 +55,13 @@ static void blinkLed(uint8_t r, uint8_t g, uint8_t b, const uint32_t& interval) 
   static uint32_t lastBlinkTime = 0;
   static bool ledState = false;
   uint32_t currentTime = millis();  // Simpler to use millis()
+  // Alternate method: ** Not tested **
+  // int64_t currentTime = esp_timer_get_time() / 1000; // Converts to ms
 
   if (currentTime - lastBlinkTime >= interval) {
     lastBlinkTime = currentTime;
     ledState = !ledState;
-    
+
     if (ledState) {
       statusLed.setPixelColor(0, statusLed.Color(r, g, b));
     } else {

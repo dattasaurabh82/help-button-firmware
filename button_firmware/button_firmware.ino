@@ -54,7 +54,7 @@
 
 /* ============= Configuration Constants ============= */
 #define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
-#define BOOT_PIN GPIO_NUM_9             /**< GPIO pin for BOOT button: gpio_num_t type, not a simple int */
+#define WAKEUP_BOOT_BTN_PIN GPIO_NUM_9  /**< GPIO pin for BOOT button: gpio_num_t type, not a simple int */
 #define BEACON_TIME_MS 10000            /**< Broadcast duration in ms */
 #define FACTORY_WAIT_MS 20000           /**< Factory reset timeout in ms */
 
@@ -159,9 +159,9 @@ void setup() {
 
   // Determine operation mode
   // -- OLD
-  // if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(BOOT_PIN) == LOW)) {
+  // if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && digitalRead(WAKEUP_BOOT_BTN_PIN) == LOW)) {
   // -- NEW
-  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && gpio_get_level(BOOT_PIN) == 0)) {
+  if (!rtc_data.is_initialized || (esp_reset_reason() == ESP_RST_POWERON && gpio_get_level(WAKEUP_BOOT_BTN_PIN) == 0)) {
     rtc_data.state = DeviceState::FACTORY_MODE;
     DEBUG_VERBOSE(DBG_FACTORY_WARN);
     enterFactoryMode();
@@ -364,11 +364,11 @@ static bool initializeHardware(void) {
 
   // -- OLD
   // Configure BOOT button with internal pullup
-  // pinMode(BOOT_PIN, INPUT_PULLUP);
+  // pinMode(WAKEUP_BOOT_BTN_PIN, INPUT_PULLUP);
   // -- NEW
   // Native ESP-IDF configuration for input with pull-up
   gpio_config_t io_conf = {
-    .pin_bit_mask = (1ULL << BOOT_PIN),
+    .pin_bit_mask = (1ULL << WAKEUP_BOOT_BTN_PIN),
     .mode = GPIO_MODE_INPUT,
     .pull_up_en = GPIO_PULLUP_ENABLE,
     .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -528,7 +528,6 @@ static uint32_t generateSeed(void) {
 static void enterFactoryMode(void) {
   // LED Status: Factory Mode - Yellow
   // LED_YELLOW();
-  LED_INIT();  // Make sure LED is initialized
 
   DEBUG_VERBOSE(DBG_FACTORY_ENTER);
 
@@ -546,9 +545,9 @@ static void enterFactoryMode(void) {
   while (millis() - start_time < FACTORY_WAIT_MS) {
     BLINK_YELLOW_LED(250);  // Call the blink function frequently
     // -- OLD
-    // if (digitalRead(BOOT_PIN) == LOW) {
+    // if (digitalRead(WAKEUP_BOOT_BTN_PIN) == LOW) {
     // -- NEW
-    if (gpio_get_level(BOOT_PIN) == 0) {
+    if (gpio_get_level(WAKEUP_BOOT_BTN_PIN) == 0) {
       delay(10);  // Shorter debounce
       break;
     }
@@ -611,11 +610,11 @@ static uint32_t generateRollingCode(const uint32_t timestamp) {
 *    - Broadcast over BLE
 * 3. Sleep preparation:
 *    - Increment counter
-*    - Configure BOOT_PIN as wakeup source
+*    - Configure WAKEUP_BOOT_BTN_PIN as wakeup source
 *    - Turn off LED
 *    - Enter deep sleep
 *
-* @note Device wakes on BOOT_PIN low signal
+* @note Device wakes on WAKEUP_BOOT_BTN_PIN low signal
 */
 static void enterNormalMode(void) {
   // LED Status: Active/Normal - Green
@@ -640,7 +639,7 @@ static void enterNormalMode(void) {
   // Configure wakeup on GPIO ...
   // Ext1 Wakeup (Multiple Pins) (also, only one for ESP32-H2): Can wake up on MULTIPLE GPIO pins simultaneously & offers more complex
   // setupDeepSleepWakeup();
-  if (!setupDeepSleepWakeup(BOOT_PIN)) {
+  if (!setupDeepSleepWakeup(WAKEUP_BOOT_BTN_PIN)) {
     DEBUG_VERBOSE("\n[ERROR] Deep sleep wakeup configuration failed ❌");
     DEBUG_VERBOSE("\n[ERROR] So, will not go to sleep (exiting function ...) 😳\n");
     return;
