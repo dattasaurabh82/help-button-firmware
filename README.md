@@ -9,41 +9,41 @@
 ## File Structure
 
 ```txt
-.
+├── BLE_SECURITY.md
 ├── LICENSE
+├── POWER_OPTIMIZATION.md
 ├── README.md
 ├── assets/
-├── main/
-│   ├── arduino/
-│   │   └── button_firmware
-│   │       ├── SECURE_BOOT.md
-│   │       ├── binary/
-│   │       ├── button_firmware.ino
-│   │       ├── debug_led.h
-│   │       ├── debug_log.h
-│   │       ├── secrets.h
-│   │       ├── secrets_template.h
-│   │       ├── secure_boot_process.sh
-│   └── pio/
-├── test/
-└── webflasher/
-    ├── assets/
+├── button_firmware/
+│   ├── SECURE_BOOT.md
+│   ├── binary/
+│   ├── button_firmware.ino
+│   ├── debug_led.h
+│   ├── debug_log.h
+│   ├── secrets.h
+│   ├── secrets_template.h
+│   ├── secure_boot_process.sh
+│   └── secure_boot_signing_key.pem
+├── custom_mac_burner
+│   ├── README.md
+│   └── burn_custom_mac.sh
+└── webflasher
+    ├── assets
     │   ├── css
     │   │   └── styles.css
     │   ├── favicon.ico
     │   ├── js
     │   │   └── main.js
     │   └── logo_black_fullname.png
-    ├── firmware/
+    ├── firmware
     │   └── button_firmware.merged.bin
     ├── index.html
     └── manifest.json
-
 ```
 
 1. The main firmware directory is: [main/](main/) .
-2. The arduino code within the main firmware dir is here [main/arduino/button_firmware/](main/arduino) .
-3. The compiled binaries are stored in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)
+2. The arduino code within the main firmware dir is here [button_firmware/](main/arduino) .
+3. The compiled binaries are stored in [button_firmware/binary/](button_firmware/binary/)
 4. [webflasher/](webflasher/) hosts files for a _web firmware installer_ website for flashing the __*latest__ firmware to our esp32-h2 modules, from a webiste hosted in gh-pages.
 
    > __It uses [ESP Web Tools](https://esphome.github.io/esp-web-tools/)__. More details about its usage and implementation will follow later.
@@ -55,7 +55,7 @@
 
 1. An automation flow to  [build releases](.github/workflows/build_main_firmware.yml) from the source code as binary files, is triggered by new unique tag pushes.
 
-> __This also commits and pushes the binaries to the repository itself in [main/arduino/button_firmware/binary/](main/arduino/button_firmware/binary/)__
+> __This also commits and pushes the binaries to the repository itself in [button_firmware/binary/](button_firmware/binary/)__
 
 ```bash
 git tag v0.0.x
@@ -224,10 +224,10 @@ arduino-cli lib install "Adafruit NeoPixel"
 
 #### 2.3.1. Clone this repository to your local machine.
 
-#### 2.3.2. Navigate to the [main/arduino/button_firmware](main/arduino/button_firmware) directory.
+#### 2.3.2. Navigate to the [button_firmware](button_firmware) directory.
 
 ```bash
-cd main/arduino/button_firmware
+cd button_firmware
 ```
 
 #### 2.3.3. Clean and create a new binary directory
@@ -249,7 +249,7 @@ cd binary && ls -la
 #### 2.3.5. Upload the firmware
 
 ```bash
-# Assuming you are in main/arduino/button_firmware 
+# Assuming you are in button_firmware 
 # and a binary dir exists with the compiled binaries from the previous step
 arduino-cli upload -v --fqbn esp32:esp32:esp32h2:UploadSpeed=921600,CDCOnBoot=default,FlashFreq=64,FlashMode=qio,FlashSize=4M,PartitionScheme=default,DebugLevel=none,EraseFlash=none,JTAGAdapter=default,ZigbeeMode=default --port /dev/your-serial-port binary/button_firmware.ino.merged.bin
 ```
@@ -280,7 +280,7 @@ TBD
 #### 3.2. Compile & upload
 
 3.2.1. Clone this repository to your local machine.
-3.2.2. Open the [button_firmware.ino](main/arduino/button_firmware/button_firmware.ino) file located in the [main/arduino/button_firmware](main) directory.
+3.2.2. Open the [button_firmware.ino](button_firmware/button_firmware.ino) file located in the [button_firmware](main) directory.
 3.2.3. In the Arduino IDE, select the following board parameters:
 
    ```txt
@@ -367,9 +367,9 @@ flowchart TD
 
 ### Key areas
 
-1. Power Saving
+1. [Power Saving](POWER_OPTIMIZATION.md)
 2. [Rolling Code Security](BLE_SECURITY.md)
-3. [Secure Boot](main/arduino/button_firmware/SECURE_BOOT.md)
+3. [Secure Boot](button_firmware/SECURE_BOOT.md)
 
 ## License
 
