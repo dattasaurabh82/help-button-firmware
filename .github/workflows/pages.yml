@@ -76,10 +76,10 @@ jobs:
           sed -i "s/VERSION_PLACEHOLDER/${{ env.VERSION }}/" webflasher/index.html
           cat webflasher/index.html
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: './webflasher'  # Specifically upload only the webflasher directory
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4
