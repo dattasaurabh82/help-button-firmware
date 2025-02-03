@@ -57,8 +57,8 @@ jobs:
           tree webflasher/
           echo ""
           # Copy the latest binary file
-          echo "Copying latest firmwar from main/arduino/button_firmware/binary/ to webflasher/firmware/"
-          cp main/arduino/button_firmware/binary/button_firmware.merged.bin webflasher/firmware/
+          echo "Copying latest firmwar from button_firmware/binary/ to webflasher/firmware/"
+          cp button_firmware/binary/button_firmware.merged.bin webflasher/firmware/
           ls -la webflasher/firmware/
           echo ""
       

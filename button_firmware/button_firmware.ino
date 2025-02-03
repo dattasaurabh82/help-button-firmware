@@ -4,7 +4,7 @@
  * @details Implements secure rolling code beacon with factory reset and sleep modes
  * 
  * @author  Saurabh Datta | Datta+Baum Studio
- * @date    2024-12
+ * @date    2024-12 -> 2025-01
  * @version 0.0.2
  * @license GPL 3.0
  *
