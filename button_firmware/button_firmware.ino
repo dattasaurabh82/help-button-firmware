@@ -53,7 +53,7 @@
 
 
 /* ============= Configuration Constants ============= */
-#define PRODUCT_NAME "HELP by JENNYFER" /**< Product-specific name */
+#define PRODUCT_NAME "ESP32H2 SoS Button" /**< Product-specific name */
 #define WAKEUP_BOOT_BTN_PIN GPIO_NUM_9  /**< GPIO pin for BOOT button: gpio_num_t type, not a simple int */
 #define BEACON_TIME_MS 10000            /**< Broadcast duration in ms */
 #define FACTORY_WAIT_MS 20000           /**< Factory reset timeout in ms */
