@@ -2,3 +2,6 @@
 .hintrc
 .vscode/*
 .pio/*
+secrets.h
+*.pem
+.last_port
