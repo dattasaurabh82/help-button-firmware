@@ -324,9 +324,7 @@ Copy one of the partitions file from `/Users/[USER]/.platformio/packages/framewo
 
 The pio project is located here: [button_firmware_pio](button_firmware_pio)
 
-WIP & TBD
-
-proper settings in [platformio.ini](button_firmware_pio/platformio.ini) is ongoing here: 
+WIP & TBD -> proper fuse settings for [platformio.ini](button_firmware_pio/platformio.ini) is ongoing here: [issues/113](https://github.com/pioarduino/platform-espressif32/issues/113)
 
 </details>
 
