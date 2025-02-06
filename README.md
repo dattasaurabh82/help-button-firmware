@@ -318,8 +318,13 @@ TBD
 <details>
 <summary>4. Platform IO (If you are a pro and are keen in firmware development)</summary>
 
-Copy one of the partitions file from `/Users/[USER]/.platformio/packages/framework-arduinoespressif32/tools/partitions` to the `button_firmware_pio/button_firmware_pio/` (i.e. root of the pio project dir)
+Copy one of the partitions file from `/Users/[USER]/.platformio/packages/framework-arduinoespressif32/tools/partitions` to the `button_firmware_pio/button_firmware_pio/partitions/`
 
+The pio project is located here: [button_firmware_pio](button_firmware_pio)
+
+WIP & TBD
+
+proper settings in [platformio.ini](button_firmware_pio/platformio.ini) is ongoing here:
 
 </details>
 
