@@ -388,7 +388,7 @@ flowchart TD
 
 1. [Power Saving](POWER_OPTIMIZATION.md)
 2. [Rolling Code Security](BLE_SECURITY.md)
-3. [Secure Boot](button_firmware/SECURE_BOOT.md)
+3. [Secure Boot](SECURE_BOOT.md)
 
 ## License
 

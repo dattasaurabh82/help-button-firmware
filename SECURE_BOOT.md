@@ -90,7 +90,7 @@ esptool.py --chip esp32h2 --port <PORT> --baud 921600 \
 
 ## But that's a lot of manual steps
 
-Yes and so, the manual steps 2 and 4 can be made faster with a helper script called [secure_boot_process.sh](secure_boot_process.sh)
+Yes and so, the manual steps 2 and 4 can be made faster with a helper script called [secure_boot_process.sh](button_firmware/secure_boot_process.sh)
 
 Just do:
 
