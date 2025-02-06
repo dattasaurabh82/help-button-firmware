@@ -7,6 +7,7 @@ The source code of each library should be placed in an own separate directory
 
 For example, see a structure of the following two libraries `Foo` and `Bar`:
 
+```txt
 |--lib
 |  |
 |  |--Bar
@@ -29,6 +30,8 @@ For example, see a structure of the following two libraries `Foo` and `Bar`:
 
 and a contents of `src/main.c`:
 ```
+
+```c
 #include <Foo.h>
 #include <Bar.h>
 
@@ -36,7 +39,6 @@ int main (void)
 {
   ...
 }
-
 ```
 
 PlatformIO Library Dependency Finder will find automatically dependent
