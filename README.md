@@ -149,7 +149,7 @@ To test development and firmware, you can purchase [ESP32-H2-DevKitM-1](https://
 <details>
 <summary>Real hardware module</summary>
 
-_WIP_ 
+_WIP_
 
 ![alt text](<assets/WhatsApp Image 2025-01-21 at 09.02.57.jpeg>)
 
@@ -161,7 +161,7 @@ Back
 
 ![alt text](<assets/programmer_assembly v60.png>)
 
-[Tooling] With ext-programmer for mass board wake-ups. 
+[Tooling] With ext-programmer for mass board wake-ups.
 
 </details>
 
@@ -174,7 +174,7 @@ Back
 
 ![alt text](<assets/Step 1.png>)
 
-1.1. Go to: https://dattasaurabh82.github.io/help-button-firmware/ and click "Connect". Of course, plug in your device first.
+1.1. Go to: <https://dattasaurabh82.github.io/help-button-firmware/> and click "Connect". Of course, plug in your device first.
 
 ![alt text](<assets/Step 2.png>)
 
@@ -235,9 +235,9 @@ arduino-cli lib install "Adafruit NeoPixel"
 
 ### 2.3. Building and uploading the firmware
 
-#### 2.3.1. Clone this repository to your local machine.
+#### 2.3.1. Clone this repository to your local machine
 
-#### 2.3.2. Navigate to the [button_firmware](button_firmware) directory.
+#### 2.3.2. Navigate to the [button_firmware](button_firmware) directory
 
 ```bash
 cd button_firmware
