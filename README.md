@@ -317,7 +317,7 @@ TBD
 
 <details>
 <summary>4. Platform IO (If you are a pro and are keen in firmware development)</summary>
-
+<br>
 Copy one of the partitions file from `/Users/[USER]/.platformio/packages/framework-arduinoespressif32/tools/partitions` to the `button_firmware_pio/button_firmware_pio/` (i.e. root of the pio project dir)
 
 
