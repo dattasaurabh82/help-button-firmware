@@ -7,7 +7,7 @@ The source code of each library should be placed in an own separate directory
 
 For example, see a structure of the following two libraries `Foo` and `Bar`:
 
-```txt
+```
 |--lib
 |  |
 |  |--Bar
@@ -31,7 +31,7 @@ For example, see a structure of the following two libraries `Foo` and `Bar`:
 
 And, a content of `src/main.c`:
 
-```c
+```c++
 #include <Foo.h>
 #include <Bar.h>
 
